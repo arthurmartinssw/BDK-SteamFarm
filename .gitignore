@@ -1,0 +1,29 @@
+# build
+bin/
+obj/
+publish/
+publish.zip
+*.zip
+*.apk
+*.aab
+
+# dados e segredos (NUNCA versionar)
+data/
+**/data/
+*.pem
+*.key
+*.jks
+*.keystore
+*.bdkb
+*.bdklog
+api-token.txt
+local.properties
+keystore.properties
+
+# IDEs
+.vs/
+.idea/
+.gradle/
+build/
+*.user
+.DS_Store

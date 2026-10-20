@@ -1,0 +1,19 @@
+[Unit]
+Description=BDK Hour Farm (Steam)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bdk
+WorkingDirectory=/opt/bdkhourfarm
+Environment=BDK_DATA_DIR=/opt/bdkhourfarm/data
+ExecStart=/opt/bdkhourfarm/BdkHourFarm run
+# Reinicia se cair, mas NÃO reinicia quando o login é inválido (código 2),
+# para não ficar martelando a Steam com um token vencido.
+Restart=on-failure
+RestartSec=15
+RestartPreventExitStatus=2
+
+[Install]
+WantedBy=multi-user.target

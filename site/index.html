@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BDK Hour Farm</title>
+<meta name="description" content="Farm de horas para Steam no seu servidor: pausa sozinho quando você joga em outro PC, painel web e app Android.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap nav">
+    <a class="brand" href="#topo" aria-label="BDK Hour Farm, início">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0e1116"/><circle cx="32" cy="32" r="19" fill="none" stroke="#3ccf8e" stroke-width="5"/><path d="M32 21v12l8 5" stroke="#e8f0ec" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      BDK Hour Farm
+    </a>
+    <nav aria-label="Seções">
+      <a href="#funcoes">Funções</a>
+      <a href="#como">Como funciona</a>
+      <a href="#seguranca">Segurança</a>
+      <a href="#instalar">Instalar</a>
+      <a href="#faq">Perguntas</a>
+    </nav>
+  </div>
+</header>
+
+<main id="topo">
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Farm de horas para Steam, no seu servidor</p>
+          <h1>Suas horas rendem, <em>mesmo com o PC desligado.</em></h1>
+          <p class="lead">O BDK Hour Farm roda 24 horas numa VPS e mantém seus jogos como "em jogo". Quando você abre um jogo em outro PC, ele pausa sozinho. Quando você fecha, ele volta.</p>
+          <div class="cta">
+            <a class="btn primary" href="#funcoes">Ver as funções</a>
+            <a class="btn" href="#instalar">Como instalar</a>
+          </div>
+          <ul class="facts">
+            <li><strong>até 32</strong>jogos ao mesmo tempo</li>
+            <li><strong>sozinho</strong>pausa e retoma</li>
+            <li><strong>web + Android</strong>painel e app nativo</li>
+            <li><strong>AES-256</strong>login guardado criptografado</li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="phone-wrap">
+            <div class="phone" role="img" aria-label="Tela do app: farm ativo com sessão atual, estatísticas e lista de jogos">
+              <div class="ph-head"><b>BDK Hour Farm</b><span>st******</span></div>
+              <div class="ph-card ph-status">
+                <i class="ph-dot"></i>
+                <div><strong>Farmando</strong><small>Sessão atual: <span id="tick">2h 14m 07s</span></small></div>
+                <span class="ph-btn">Pausar</span>
+              </div>
+              <div class="ph-stats">
+                <div class="ph-stat"><small>Programa ligado há</small><b>3d 6h</b></div>
+                <div class="ph-stat"><small>Total farmado</small><b>412 h</b></div>
+                <div class="ph-stat"><small>Pausas (outro PC)</small><b>9</b></div>
+                <div class="ph-stat"><small>Login vence em</small><b>187 dias</b></div>
+              </div>
+              <div class="ph-games">
+                <div class="ph-game"><i class="cover c1"></i><span>Tiro tático</span><b>52 h</b></div>
+                <div class="ph-game"><i class="cover c2"></i><span>Aventura noturna</span><b>52 h</b></div>
+                <div class="ph-game"><i class="cover c3"></i><span>Mundo aberto</span><b>52 h</b></div>
+                <div class="ph-game"><i class="cover c4"></i><span>Plataforma 2D</span><b>52 h</b></div>
+              </div>
+            </div>
+          </div>
+          <p class="phone-note">Tela de exemplo do app Android, com dados ilustrativos.</p>
+        </div>
+      </div>
+
+      <div class="strip">
+        <div class="strip-head">
+          <span><b>Um dia típico</b> (exemplo): farm ligado, pausa por outro PC, agenda de madrugada</span>
+          <span class="mono">24 h</span>
+        </div>
+        <svg viewBox="0 0 1040 86" role="img" aria-label="Linha do tempo de 24 horas com o farm ligado de 0h às 8h, pausa das 8h às 8h40, ligado das 8h40 às 9h, fora do horário da agenda das 9h às 22h e ligado das 22h às 24h">
+          <rect x="0" y="28" width="1040" height="30" rx="8" fill="var(--surface-2)"/>
+          <rect x="0" y="28" width="333" height="30" rx="8" fill="var(--accent)"/>
+          <rect x="325" y="28" width="9" height="30" fill="var(--accent)"/>
+          <rect x="333" y="28" width="30" height="30" fill="var(--amber)" opacity=".85"/>
+          <rect x="363" y="28" width="12" height="30" fill="var(--accent)"/>
+          <rect x="953" y="28" width="87" height="30" rx="8" fill="var(--accent)"/>
+          <rect x="953" y="28" width="12" height="30" fill="var(--accent)"/>
+          <g stroke="var(--line)" stroke-width="1">
+            <line x1="260" y1="20" x2="260" y2="66"/><line x1="520" y1="20" x2="520" y2="66"/><line x1="780" y1="20" x2="780" y2="66"/>
+          </g>
+          <text x="0" y="16">0h</text><text x="254" y="16">6h</text><text x="512" y="16">12h</text><text x="772" y="16">18h</text><text x="1018" y="16">24h</text>
+          <text x="6" y="80">farmando</text><text x="318" y="80" text-anchor="start">pausa: outro PC</text><text x="560" y="80">fora do horário da agenda</text><text x="948" y="80">farmando</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="funcoes">
+    <div class="wrap">
+      <p class="eyebrow">Funções</p>
+      <h2>Pensado para rodar sozinho e ficar fora do caminho.</h2>
+      <p class="lead">Tudo o que o app faz hoje, com o que você vê no painel web e no app Android.</p>
+
+      <div class="bento">
+        <article class="card s4">
+          <span class="tag">Pausa inteligente</span>
+          <h3>Você joga, ele sai da frente.</h3>
+          <p>A Steam só aceita uma sessão de jogo por conta. O farm percebe quando você começa a jogar em outro lugar, para na hora e espera. Quando o outro jogo fecha, volta sozinho depois do tempo que você definir.</p>
+          <div class="screen">
+            <div class="pausa">
+              <div class="bar"><i class="seg-on" style="flex: 46"></i><i class="seg-off" style="flex: 22"></i><i class="seg-on" style="flex: 32"></i></div>
+              <div class="marks"><span style="flex: 46">farmando</span><span style="flex: 22">você no outro PC</span><span style="flex: 32">volta sozinho</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card s2">
+          <span class="tag">Biblioteca</span>
+          <h3>Escolha os jogos pela sua lista.</h3>
+          <p>Marque até 32 jogos da biblioteca, com busca. Também dá para adicionar por AppID.</p>
+          <div class="screen">
+            <ul class="pick">
+              <li><i class="box on"></i><i class="cover c1"></i><span>Tiro tático</span><em>152 h</em></li>
+              <li><i class="box on"></i><i class="cover c2"></i><span>Aventura noturna</span><em>16 h</em></li>
+              <li><i class="box"></i><i class="cover c3"></i><span>Mundo aberto</span><em>27 h</em></li>
+            </ul>
+            <div class="count"><span>Biblioteca</span><span>2/32 selecionados</span></div>
+          </div>
+        </article>
+
+        <article class="card s3">
+          <span class="tag">Agenda</span>
+          <h3>Defina quando o farm pode rodar.</h3>
+          <p>Janelas por dia da semana, no seu fuso horário. Um horário de 22:00 a 08:00 vira a meia-noite. Fora dele, o farm pausa e volta quando começar.</p>
+          <div class="screen">
+            <svg viewBox="0 0 400 150" role="img" aria-label="Agenda da semana: farm ligado de 0h às 8h e das 22h às 24h, todos os dias">
+              <g stroke="#262d37"><line x1="108" y1="4" x2="108" y2="146"/><line x1="204" y1="4" x2="204" y2="146"/><line x1="300" y1="4" x2="300" y2="146"/></g>
+              <g fill="#1d232c"><rect x="12" y="6" width="384" height="14" rx="4"/><rect x="12" y="26" width="384" height="14" rx="4"/><rect x="12" y="46" width="384" height="14" rx="4"/><rect x="12" y="66" width="384" height="14" rx="4"/><rect x="12" y="86" width="384" height="14" rx="4"/><rect x="12" y="106" width="384" height="14" rx="4"/><rect x="12" y="126" width="384" height="14" rx="4"/></g>
+              <g fill="#22c55e"><rect x="12" y="6" width="32" height="14" rx="3"/><rect x="332" y="6" width="64" height="14" rx="3"/><rect x="12" y="26" width="32" height="14" rx="3"/><rect x="332" y="26" width="64" height="14" rx="3"/><rect x="12" y="46" width="32" height="14" rx="3"/><rect x="332" y="46" width="64" height="14" rx="3"/><rect x="12" y="66" width="32" height="14" rx="3"/><rect x="332" y="66" width="64" height="14" rx="3"/><rect x="12" y="86" width="32" height="14" rx="3"/><rect x="332" y="86" width="64" height="14" rx="3"/><rect x="12" y="106" width="32" height="14" rx="3"/><rect x="332" y="106" width="64" height="14" rx="3"/><rect x="12" y="126" width="32" height="14" rx="3"/><rect x="332" y="126" width="64" height="14" rx="3"/></g>
+            </svg>
+            <div class="count"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+          </div>
+        </article>
+
+        <article class="card s3">
+          <span class="tag">Histórico</span>
+          <h3>Cada sessão registrada, com o motivo.</h3>
+          <p>Gráfico de horas por dia, linha do tempo da semana e a lista de sessões. Cada parada mostra a causa: outro PC, pausa manual, agenda, queda de conexão ou servidor desligado.</p>
+          <div class="screen">
+            <svg viewBox="0 0 400 150" role="img" aria-label="Gráfico de colunas: horas farmadas por dia em 7 dias, de 8 a 17 horas">
+              <g stroke="#262d37"><line x1="30" y1="14" x2="396" y2="14"/><line x1="30" y1="68" x2="396" y2="68"/><line x1="30" y1="122" x2="396" y2="122"/></g>
+              <g fill="#3987e5">
+                <path d="M44 122V70q0-4 4-4h20q4 0 4 4v52z"/><path d="M96 122V60q0-4 4-4h20q4 0 4 4v62z"/><path d="M148 122V84q0-4 4-4h20q4 0 4 4v38z"/><path d="M200 122V50q0-4 4-4h20q4 0 4 4v72z"/><path d="M252 122V80q0-4 4-4h20q4 0 4 4v42z"/><path d="M304 122V40q0-4 4-4h20q4 0 4 4v82z"/><path d="M356 122V66q0-4 4-4h20q4 0 4 4v56z"/>
+              </g>
+              <text x="2" y="18">24</text><text x="2" y="72">12</text><text x="14" y="126">0</text>
+              <text x="44" y="142">seg</text><text x="96" y="142">ter</text><text x="148" y="142">qua</text><text x="200" y="142">qui</text><text x="252" y="142">sex</text><text x="304" y="142">sáb</text><text x="356" y="142">dom</text>
+            </svg>
+          </div>
+        </article>
+
+        <article class="card s3">
+          <span class="tag">Avisos</span>
+          <h3>Receba no Discord o que importa.</h3>
+          <p>Cole um webhook e pronto. O farm avisa quando inicia, quando a conexão cai por mais de 3 minutos, quando volta, quando fica bloqueado e quando o login está perto de vencer. As pausas você liga ou desliga.</p>
+          <div class="screen">
+            <span class="embed" style="display:block"><span class="who">BDK Hour Farm</span><b>Conexão com a Steam caiu</b><span>O farm está sem conexão há 3 min e continua tentando reconectar.</span></span>
+            <span class="embed" style="display:block;margin-top:8px"><b>Farm voltou</b><span>Voltou a farmar 4 jogo(s) depois de 6 min fora.</span></span>
+            <span class="embed warn" style="display:block;margin-top:8px"><b>Farm pausado pela agenda</b><span>Saiu do horário permitido. Próxima mudança: seg 22:00.</span></span>
+          </div>
+        </article>
+
+        <article class="card s3">
+          <span class="tag">Painel e app</span>
+          <h3>Controle de qualquer lugar.</h3>
+          <p>O painel web abre no navegador por um link HTTPS. O app Android, feito em Kotlin, mostra o mesmo: status, pausar e retomar, jogos, histórico, agenda e avisos. O token fica guardado no cofre do Android.</p>
+          <div class="chips"><span class="chip">HTTPS</span><span class="chip">Android 8+</span><span class="chip">tema claro e escuro</span><span class="chip">sem anúncios</span></div>
+        </article>
+
+        <article class="card s6">
+          <span class="tag">Sempre ligado</span>
+          <h3>Feito para ficar semanas sem você olhar.</h3>
+          <div class="always">
+            <div><b>1 GB de RAM</b><span>uma VPS pequena já basta para uma conta.</span></div>
+            <div><b>5 s a 2 min</b><span>reconecta sozinho, com espera crescente, quando a Steam cai.</span></div>
+            <div><b>systemd</b><span>reinicia o programa se ele parar e sobe junto com o servidor.</span></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="como" style="background: var(--surface-2)">
+    <div class="wrap">
+      <p class="eyebrow">Como funciona</p>
+      <h2>Do zero ao primeiro jogo farmando em quatro passos.</h2>
+      <ol class="steps">
+        <li>
+          <div><h3>Tenha um servidor pequeno</h3><p>Uma VPS Linux com 1 GB de RAM resolve. Fica ligada o tempo todo, então seu PC e seu notebook podem desligar.</p></div>
+        </li>
+        <li>
+          <div><h3>Instale o programa e entre com a conta</h3><p>Você envia o programa para a VPS e roda o login uma vez, com o código do Steam Guard. A senha da Steam não é guardada. Fica só uma sessão de login, criptografada.</p></div>
+        </li>
+        <li>
+          <div><h3>Abra o painel pelo link</h3><p>O programa gera um link HTTPS com o seu token de acesso. Abra no navegador ou cole no app Android. A partir daí, tudo é pelo celular.</p></div>
+        </li>
+        <li>
+          <div><h3>Escolha os jogos e deixe rodando</h3><p>Marque os jogos da biblioteca, defina uma agenda se quiser e ligue os avisos no Discord. O resto é com ele.</p></div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="seguranca">
+    <div class="wrap">
+      <p class="eyebrow">Segurança</p>
+      <h2>Sua conta merece cuidado. Aqui está o que existe e o que não existe.</h2>
+      <p class="lead">Um farm precisa de uma sessão de login guardada no servidor. Por isso, vale saber exatamente como ela é protegida e onde a proteção termina.</p>
+
+      <div class="two">
+        <article class="card">
+          <h3>O que protege</h3>
+          <ul class="list">
+            <li><b>Senha da Steam nunca é salva.</b> Só uma sessão de login (token), criptografada em AES-256-GCM.</li>
+            <li><b>Modo com senha.</b> A chave fica só na sua cabeça. Depois de cada reinício, você digita a senha no painel ou no app para o farm começar.</li>
+            <li><b>Conta mascarada.</b> Os logs mostram st******, nunca o nome inteiro.</li>
+            <li><b>Painel fechado por token e HTTPS</b>, com limite de tentativas no desbloqueio.</li>
+            <li><b>Serviço sem privilégios</b> e acesso ao servidor só por chave SSH.</li>
+            <li><b>Webhook e chave da Steam criptografados</b> no disco.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>O que não protege</h3>
+          <ul class="list no">
+            <li><b>No modo padrão</b>, a chave vem da própria máquina. Isso cobre um vazamento só da pasta de dados, mas não alguém que já controla o servidor.</li>
+            <li><b>Uma VPS invadida</b> expõe a sessão em uso. Nesse caso, troque a senha da Steam e remova os dispositivos autorizados.</li>
+            <li><b>A Steam pode mudar regras</b> ou limitar contas. Nenhum programa consegue prometer o contrário.</li>
+            <li><b>Recomendação:</b> use uma conta secundária para o farm, e não a conta principal.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="instalar" style="background: var(--surface-2)">
+    <div class="wrap">
+      <p class="eyebrow">Instalar</p>
+      <h2>Servidor e app, passo a passo.</h2>
+      <p class="lead">A distribuição ainda é fechada e o projeto está em testes. Estes são os passos do uso atual.</p>
+
+      <div class="tabs" role="tablist" aria-label="Plataforma">
+        <button role="tab" id="tab-srv" aria-selected="true" aria-controls="p-srv">Servidor (VPS)</button>
+        <button role="tab" id="tab-app" aria-selected="false" aria-controls="p-app">App Android</button>
+      </div>
+
+      <div class="panel" id="p-srv" role="tabpanel" aria-labelledby="tab-srv">
+        <div class="step-line"><i>1</i><div><p><b>Gere o pacote</b> no seu PC, na pasta do projeto (.NET 8).</p>
+          <div class="code"><code>dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish</code><button class="copy" type="button">Copiar</button></div></div></div>
+        <div class="step-line"><i>2</i><div><p><b>Envie para a VPS</b> o pacote compactado e o script de instalação.</p>
+          <div class="code"><code>scp publish.zip atualizar.sh root@SEU_IP:/root/</code><button class="copy" type="button">Copiar</button></div></div></div>
+        <div class="step-line"><i>3</i><div><p><b>Instale e inicie o serviço</b> na VPS. O script preserva seus dados em atualizações futuras.</p>
+          <div class="code"><code>bash /root/atualizar.sh</code><button class="copy" type="button">Copiar</button></div></div></div>
+        <div class="step-line"><i>4</i><div><p><b>Entre com a conta Steam</b> uma única vez, informando o código do Steam Guard.</p>
+          <div class="code"><code>sudo -u bdk /opt/bdkhourfarm/BdkHourFarm login</code><button class="copy" type="button">Copiar</button></div></div></div>
+        <div class="step-line"><i>5</i><div><p><b>Gere o link HTTPS do painel</b> e abra no navegador.</p>
+          <div class="code"><code>bash /root/configurar-https.sh</code><button class="copy" type="button">Copiar</button></div></div></div>
+      </div>
+
+      <div class="panel" id="p-app" role="tabpanel" aria-labelledby="tab-app" hidden>
+        <div class="step-line"><i>1</i><p><b>Gere o APK</b> no Android Studio: Build, Generate Signed App Bundle or APK, APK, variante release. Guarde a keystore em um lugar seguro, fora do projeto.</p></div>
+        <div class="step-line"><i>2</i><p><b>Leve o arquivo ao celular</b> por cabo USB ou pelo Drive e toque nele para instalar. O Android pede para permitir a instalação de fontes desconhecidas.</p></div>
+        <div class="step-line"><i>3</i><p><b>Abra o app e cole o link do painel</b>, o que termina com #token=. O endereço precisa ser https.</p></div>
+        <div class="step-line"><i>4</i><p><b>Pronto.</b> Status, jogos, histórico, agenda e avisos ficam na tela inicial. O token fica guardado no cofre do Android.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <p class="eyebrow">Perguntas</p>
+      <h2>O que as pessoas perguntam primeiro.</h2>
+      <div class="faq">
+        <details>
+          <summary>Tem risco de ban?</summary>
+          <p>Não dá para garantir. O programa entra na Steam como um cliente comum e informa que você está jogando. Ele não mexe nos jogos nem usa trapaças. Mesmo assim, farm de horas é uma área cinzenta e a Steam pode mudar as regras. Use por sua conta e risco, de preferência com uma conta secundária.</p>
+        </details>
+        <details>
+          <summary>Preciso de uma VPS?</summary>
+          <p>Para ficar 24 horas e permitir desligar seus aparelhos, sim. Uma máquina Linux com 1 GB de RAM basta. O programa também roda em Windows e Linux comuns, se você preferir deixar um computador ligado.</p>
+        </details>
+        <details>
+          <summary>O que acontece quando eu jogo em outro PC?</summary>
+          <p>A Steam avisa que a conta entrou em um jogo em outro lugar. O farm para de farmar e espera. Quando você fecha o jogo, ele aguarda o tempo configurado e volta com a mesma lista.</p>
+        </details>
+        <details>
+          <summary>Quantos jogos posso farmar ao mesmo tempo?</summary>
+          <p>Até 32, que é o limite da Steam para uma sessão. A lista é escolhida no painel ou no app, e a troca vale na hora.</p>
+        </details>
+        <details>
+          <summary>Funciona com várias contas?</summary>
+          <p>Hoje é uma conta por instalação. Várias contas estão nas ideias para depois.</p>
+        </details>
+        <details>
+          <summary>Vai ter planos pagos?</summary>
+          <p>Ainda não existe nada definido, nem preços. O projeto está em testes e a prioridade é validar o funcionamento e a segurança.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section style="background: var(--surface-2)">
+    <div class="wrap">
+      <p class="eyebrow">Próximos passos</p>
+      <h2>O que vem depois.</h2>
+      <p class="lead">Ideias em estudo, sem data prometida.</p>
+      <div class="road">
+        <article class="card"><h3>Notificações no app</h3><p>Avisos direto no celular, além do Discord, com o app fechado.</p></article>
+        <article class="card"><h3>Logs criptografados</h3><p>Registro cifrado com chave pública, que só abre no seu PC, com uma ferramenta para ler.</p></article>
+        <article class="card"><h3>Metas por jogo</h3><p>Tirar um jogo da lista ao chegar em certo número de horas e entrar o próximo.</p></article>
+        <article class="card"><h3>Renovar o login pelo celular</h3><p>Entrar de novo na Steam pelo app, sem precisar acessar o servidor.</p></article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>BDK Hour Farm</b> é um projeto independente, em fase de testes.</p>
+    <p>Não é afiliado, patrocinado nem aprovado pela Valve. Steam e os nomes dos jogos pertencem aos seus donos. As telas deste site usam dados e nomes ilustrativos.</p>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
+</body>
+</html>

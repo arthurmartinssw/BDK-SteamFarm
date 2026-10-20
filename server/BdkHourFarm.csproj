@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Permite rodar em runtimes mais novos (9, 10...) se o 8 não estiver instalado -->
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>BdkHourFarm</AssemblyName>
+    <RootNamespace>BdkHourFarm</RootNamespace>
+    <!-- Evita depender de ICU/libs de globalização numa VPS mínima -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Depois do primeiro build que funcionar, fixe a versão exata que foi restaurada -->
+    <PackageReference Include="SteamKit2" Version="3.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- O painel vai embutido no executável; a pasta deploy/ só tem scripts para a VPS -->
+    <Content Remove="Web\**;deploy\**" />
+    <None Remove="Web\**" />
+    <EmbeddedResource Include="Web\index.html" LogicalName="index.html" />
+  </ItemGroup>
+
+</Project>

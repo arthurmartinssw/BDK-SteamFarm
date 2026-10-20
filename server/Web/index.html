@@ -1,0 +1,1560 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BDK Farm">
+<meta name="robots" content="noindex">
+<title>BDK Hour Farm</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2322c55e'/%3E%3Cpath d='M32 14v18l12 7' stroke='%230e1116' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eef0f3;
+    --text: #12161c;
+    --muted: #5d6673;
+    --border: #dde1e6;
+    --accent: #16a34a;
+    --accent-ink: #ffffff;
+    --warn: #b45309;
+    --danger: #dc2626;
+    --info: #2563eb;
+    --series: #2a78d6;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1116;
+      --surface: #161b22;
+      --surface-2: #1d232c;
+      --text: #e7ebf0;
+      --muted: #8b95a3;
+      --border: #262d37;
+      --accent: #22c55e;
+      --accent-ink: #06210f;
+      --warn: #f59e0b;
+      --danger: #f87171;
+      --info: #60a5fa;
+      --series: #3987e5;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1116; --surface: #161b22; --surface-2: #1d232c; --text: #e7ebf0; --muted: #8b95a3;
+    --border: #262d37; --accent: #22c55e; --accent-ink: #06210f; --warn: #f59e0b; --danger: #f87171;
+    --info: #60a5fa; --series: #3987e5; --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  header .brand { flex: 1; min-width: 0; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: -.01em; }
+  header .sub { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  button {
+    font: inherit; color: inherit; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 10px; padding: 10px 14px; min-height: 44px;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  button.icon { width: 44px; padding: 0; display: grid; place-items: center; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.ghost { background: transparent; }
+  button.small { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+  button:focus-visible, input:focus-visible, [data-tip]:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
+  }
+
+  .status { display: flex; align-items: center; gap: 14px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.farming { background: var(--accent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent); animation: pulse 2s ease-in-out infinite; }
+  .dot.paused_other, .dot.paused_manual, .dot.paused_schedule, .dot.locked { background: var(--warn); }
+  .dot.offline { background: var(--danger); }
+  .dot.starting { background: var(--info); }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 6%, transparent); } }
+  @media (prefers-reduced-motion: reduce) { .dot.farming { animation: none; } }
+  .status .text { flex: 1; min-width: 0; }
+  .status .state { font-size: 17px; font-weight: 600; }
+  .status .detail { color: var(--muted); font-size: 13px; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+  @media (min-width: 560px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); }
+  .stat .label { color: var(--muted); font-size: 12px; }
+  .stat .value { font-size: 20px; font-weight: 600; margin-top: 2px; letter-spacing: -.01em; }
+  .stat .value.warn { color: var(--warn); }
+
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; font-weight: 600; }
+  h3 { font-size: 14px; margin: 0; font-weight: 600; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 4px 8px; min-height: 36px; }
+
+  .games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .game { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: var(--shadow); }
+  .game .cover { width: 92px; height: 35px; border-radius: 6px; background: var(--surface-2); flex: none; overflow: hidden; }
+  .game .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .game .info { flex: 1; min-width: 0; }
+  .game .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .game .meta { color: var(--muted); font-size: 12px; }
+  .game .hours { text-align: right; flex: none; }
+  .game .hours strong { display: block; font-size: 15px; }
+  .game .hours span { color: var(--muted); font-size: 12px; }
+
+  /* ---------- segmentado (7/30 dias) ---------- */
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .seg button { border: 0; border-radius: 0; min-height: 36px; padding: 6px 14px; font-size: 14px; background: transparent; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
+  /* ---------- histórico e gráficos ---------- */
+  .hist-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .hist-summary .label { color: var(--muted); font-size: 12px; }
+  .hist-summary .value { font-size: 18px; font-weight: 600; }
+  .chart-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 6px; }
+  .chart-sub { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+  .chart { width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { fill: var(--muted); font: 11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .chart text.strong { fill: var(--text); font-weight: 600; }
+  .chart .grid-line { stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
+  .chart .bar { fill: var(--series); }
+  .chart .track { fill: var(--surface-2); }
+  .chart .block { fill: var(--series); }
+  .chart .hit { fill: transparent; cursor: default; }
+  .chart .hit:hover { fill: color-mix(in srgb, var(--series) 10%, transparent); }
+  .chart-sep { height: 1px; background: var(--border); margin: 18px 0; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data th, table.data td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  table.data th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  table.data td.r, table.data th.r { text-align: right; }
+  .empty { color: var(--muted); text-align: center; padding: 20px 8px; font-size: 14px; }
+
+  .sessions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .session { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow); }
+  .session .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .session .when { font-weight: 600; min-width: 0; }
+  .session .dur { font-weight: 600; flex: none; }
+  .session .meta { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .session .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .more { width: 100%; margin-top: 8px; }
+
+  #tip {
+    position: fixed; z-index: 50; pointer-events: none; max-width: 260px;
+    background: var(--text); color: var(--bg); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  }
+  #tip .strong { font-weight: 600; }
+
+  /* ---------- log ---------- */
+  details.logs { margin-top: 20px; }
+  details.logs summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; padding: 8px 4px; list-style: none; }
+  details.logs summary::-webkit-details-marker { display: none; }
+  details.logs summary::before { content: "▸ "; }
+  details.logs[open] summary::before { content: "▾ "; }
+  pre.log {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px; margin: 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto;
+  }
+
+  .banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; border: 1px solid; }
+  .banner.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .banner.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: color-mix(in srgb, var(--warn) 8%, transparent); }
+
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin: 20px 0 8px; }
+
+  /* ---------- formulários ---------- */
+  .form label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  .form input[type="text"], .form input[type="password"], .form input[type="url"], .form input[type="search"], .form input[type="number"] {
+    width: 100%; font: inherit; color: var(--text); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; min-height: 44px;
+  }
+  .form .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .form .row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .form h2 { margin-bottom: 4px; }
+  .msg { font-size: 13px; margin-top: 8px; color: var(--danger); min-height: 1em; }
+  a { color: var(--info); }
+  code { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+
+  /* ---------- tela "Escolher jogos" ---------- */
+  dialog {
+    width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0;
+    border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.55); }
+  dialog[open] { display: flex; flex-direction: column; }
+  .dlg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .dlg-body { padding: 12px 16px; overflow: auto; flex: 1; min-height: 160px; }
+  .dlg-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid var(--border); }
+  .counter { font-size: 13px; color: var(--muted); }
+  .counter.full { color: var(--warn); font-weight: 600; }
+  .lib { list-style: none; margin: 8px 0 0; padding: 0; }
+  .lib li { border-bottom: 1px solid var(--border); }
+  .lib label { display: flex; align-items: center; gap: 10px; padding: 8px 2px; cursor: pointer; margin: 0; color: var(--text); font-size: 15px; }
+  .lib input[type="checkbox"] { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+  .lib .cover { width: 70px; height: 26px; border-radius: 5px; background: var(--surface-2); flex: none; overflow: hidden; }
+  .lib .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .lib .info { flex: 1; min-width: 0; }
+  .lib .name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib .meta { display: block; color: var(--muted); font-size: 12px; }
+  .manual { display: flex; gap: 8px; margin-top: 12px; }
+  .manual input { flex: 1; min-width: 0; }
+  .note { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 8px; }
+
+  .win { border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-top: 10px; background: var(--surface-2); }
+  .win .days { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { min-height: 36px; min-width: 36px; padding: 4px 8px; border-radius: 18px; font-size: 13px; background: var(--surface); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .win .times { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .win input[type="time"] { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-height: 40px; }
+  .win .times .grow { flex: 1; }
+
+  .hidden { display: none !important; }
+  .skeleton { color: var(--muted); text-align: center; padding: 32px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>BDK Hour Farm</h1>
+      <div class="sub" id="account">Conectando…</div>
+    </div>
+    <button class="icon ghost" id="btn-refresh" title="Atualizar" aria-label="Atualizar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+    </button>
+    <button class="icon ghost" id="btn-settings" title="Configurações" aria-label="Configurações">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <div id="banner" class="banner hidden" role="alert"></div>
+
+  <section id="settings" class="card form hidden">
+    <h2>Conexão</h2>
+    <label for="in-api">Endereço do farm</label>
+    <input id="in-api" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Deixe vazio se este painel abriu pela própria VPS">
+    <div class="hint">Ex.: https://SEU-IP-COM-TRACOS.sslip.io — só é preciso quando o painel está hospedado em outro site (como a Vercel).</div>
+    <label for="in-token">Token de acesso</label>
+    <input id="in-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Cole o token do farm">
+    <div class="hint">Na VPS: <code>sudo -u bdk /opt/bdkhourfarm/BdkHourFarm token</code>. Fica salvo só neste navegador.</div>
+    <div class="row">
+      <button class="primary" id="btn-save">Salvar e conectar</button>
+      <button id="btn-cancel">Cancelar</button>
+      <button class="ghost" id="btn-forget">Esquecer token</button>
+    </div>
+  </section>
+
+  <main id="main">
+    <div class="skeleton" id="skeleton">Carregando…</div>
+
+    <div id="content" class="hidden">
+      <section class="card status">
+        <div class="dot" id="dot"></div>
+        <div class="text">
+          <div class="state" id="state">—</div>
+          <div class="detail num" id="state-detail">—</div>
+        </div>
+        <button id="btn-toggle" disabled>—</button>
+      </section>
+
+      <section id="lock" class="card form hidden">
+        <h2>Farm bloqueado</h2>
+        <p style="margin:8px 0 0">A sessão da conta está protegida por senha. Digite a senha de proteção para o farm começar. Ela não fica gravada no servidor.</p>
+        <label for="in-pass">Senha de proteção</label>
+        <input id="in-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="msg" id="lock-msg" role="alert"></div>
+        <div class="row"><button class="primary" id="btn-unlock">Desbloquear</button></div>
+      </section>
+
+      <div class="grid">
+        <div class="stat"><div class="label">Programa ligado há</div><div class="value num" id="s-uptime">—</div></div>
+        <div class="stat"><div class="label">Total farmado</div><div class="value num" id="s-total">—</div></div>
+        <div class="stat"><div class="label">Jogos</div><div class="value num" id="s-games">—</div></div>
+        <div class="stat"><div class="label">Pausas (outro PC)</div><div class="value num" id="s-pauses">—</div></div>
+        <div class="stat"><div class="label">Reconexões</div><div class="value num" id="s-reconnects">—</div></div>
+        <div class="stat"><div class="label">Login vence em</div><div class="value num" id="s-token">—</div></div>
+      </div>
+
+      <div class="section-head">
+        <h2>Jogos</h2>
+        <button class="small" id="btn-edit-games">Escolher jogos</button>
+      </div>
+      <ul class="games" id="games"></ul>
+
+      <div class="section-head">
+        <h2>Histórico</h2>
+        <div class="seg" role="group" aria-label="Período">
+          <button id="seg-7" aria-pressed="true">7 dias</button>
+          <button id="seg-30" aria-pressed="false">30 dias</button>
+        </div>
+      </div>
+      <section class="card" id="hist">
+        <div class="hist-summary" id="hist-summary"></div>
+
+        <div class="chart-title">
+          <h3>Tempo farmando por dia</h3>
+          <button class="small ghost" id="btn-table" aria-pressed="false">Ver tabela</button>
+        </div>
+        <p class="chart-sub">Horas por dia. Cada jogo da lista ganha esse mesmo tempo.</p>
+        <div class="chart" id="chart-days"></div>
+        <div id="table-days" class="hidden"></div>
+
+        <div class="chart-sep"></div>
+
+        <div class="chart-title"><h3>Linha do tempo</h3></div>
+        <p class="chart-sub">Quando o farm esteve rodando nos últimos 7 dias. Os espaços vazios são pausas ou paradas.</p>
+        <div class="chart" id="chart-timeline"></div>
+      </section>
+
+      <div class="section-head"><h2>Sessões</h2></div>
+      <ul class="sessions" id="sessions"></ul>
+      <button class="more hidden" id="btn-more">Mostrar mais</button>
+
+      <div class="section-head"><h2>Agenda</h2></div>
+      <section class="card form" id="sched">
+        <div id="sched-state" class="hint" style="margin:0 0 4px">Carregando…</div>
+        <label style="display:flex;gap:10px;align-items:center;color:var(--text)"><input type="checkbox" id="sch-enabled" style="width:20px;height:20px;accent-color:var(--accent)"> Usar agenda (farmar só nos horários abaixo)</label>
+        <label for="sch-tz">Fuso horário</label>
+        <input id="sch-tz" type="text" list="tzlist" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="America/Sao_Paulo">
+        <datalist id="tzlist"><option value="America/Sao_Paulo"><option value="America/Manaus"><option value="America/Fortaleza"><option value="America/Bahia"><option value="America/Cuiaba"><option value="America/Rio_Branco"><option value="UTC"></datalist>
+        <div id="sch-windows"></div>
+        <div class="row">
+          <button id="sch-add">Adicionar horário</button>
+          <button id="sch-night">Só de madrugada</button>
+          <button class="primary" id="sch-save">Salvar agenda</button>
+        </div>
+        <div class="hint">Fora dos horários, o farm pausa sozinho e volta quando o horário começar. Um horário como 22:00 → 08:00 vira a meia-noite.</div>
+        <div class="msg" id="sch-msg" role="status"></div>
+      </section>
+
+      <div class="section-head"><h2>Avisos no Discord</h2></div>
+      <section class="card form" id="notify">
+        <div id="notify-state" class="hint" style="margin:0 0 4px">Carregando…</div>
+        <label for="in-hook">Webhook do Discord</label>
+        <input id="in-hook" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://discord.com/api/webhooks/…">
+        <div class="hint">No Discord: Configurações do servidor › Integrações › Webhooks › Novo webhook › Copiar URL. Fica guardado criptografado na VPS. Você recebe aviso quando o farm inicia, cai por mais de 3 min, volta, fica bloqueado, para, ou o login está perto de vencer.</div>
+        <label style="display:flex;gap:10px;align-items:center;color:var(--text);margin-top:14px"><input type="checkbox" id="ev-painel" style="width:20px;height:20px;accent-color:var(--accent)"> Avisar quando eu pausar ou retomar pelo painel/app</label>
+        <label style="display:flex;gap:10px;align-items:center;color:var(--text);margin-top:8px"><input type="checkbox" id="ev-outro_pc" style="width:20px;height:20px;accent-color:var(--accent)"> Avisar quando pausar/voltar por jogar em outro PC</label>
+        <label style="display:flex;gap:10px;align-items:center;color:var(--text);margin-top:8px"><input type="checkbox" id="ev-agenda" style="width:20px;height:20px;accent-color:var(--accent)"> Avisar quando a agenda pausar ou retomar</label>
+        <div class="row">
+          <button class="primary" id="btn-hook-save">Salvar</button>
+          <button id="btn-hook-test">Enviar teste</button>
+          <button class="ghost" id="btn-hook-remove">Remover</button>
+        </div>
+        <div class="msg" id="hook-msg" role="status"></div>
+      </section>
+
+      <div class="section-head"><h2>Backup cifrado</h2></div>
+      <section class="card form" id="backup">
+        <div id="bk-state" class="hint" style="margin:0 0 4px">Carregando…</div>
+        <div class="hint">Um backup por dia (os 7 últimos ficam na VPS), cifrado com a sua chave pública: só o seu PC, com a chave privada, consegue abrir. Para ligar, coloque o arquivo <code>backup-public.pem</code> na pasta <code>data/</code> da VPS e reinicie o serviço. Por segurança, a chave não pode ser trocada por aqui.</div>
+        <div class="row">
+          <button class="primary" id="bk-run">Fazer backup agora</button>
+          <button id="bk-download">Baixar o último</button>
+        </div>
+        <div class="msg" id="bk-msg" role="status"></div>
+      </section>
+
+      <details class="logs" id="logs">
+        <summary>Log recente</summary>
+        <pre class="log" id="log-text">Carregando…</pre>
+      </details>
+    </div>
+  </main>
+
+  <footer id="footer">—</footer>
+</div>
+
+<dialog id="dlg-games" aria-labelledby="dlg-title">
+  <div class="dlg-head">
+    <h3 id="dlg-title">Escolher jogos</h3>
+    <span class="counter num" id="sel-count">0/32</span>
+  </div>
+  <div class="dlg-body form" id="dlg-body"></div>
+  <div class="dlg-foot">
+    <div class="msg" id="dlg-msg" role="alert" style="flex:1;align-self:center;margin:0"></div>
+    <button id="dlg-cancel">Cancelar</button>
+    <button class="primary" id="dlg-save">Salvar</button>
+  </div>
+</dialog>
+
+<div id="tip" role="tooltip" class="hidden"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  const REFRESH_MS = 15000;
+  const MAX_GAMES = 32;
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- armazenamento local (pode falhar em aba anônima) ----------
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+    set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} },
+  };
+
+  let apiBase = store.get("bdk.api").replace(/\/+$/, "");
+  let token = store.get("bdk.token");
+  let histDays = store.get("bdk.days") === "30" ? 30 : 7;
+
+  // Link de acesso: https://.../#token=XXX (e opcionalmente &api=https://...)
+  if (location.hash.length > 1) {
+    const params = new URLSearchParams(location.hash.slice(1));
+    if (params.get("token")) { token = params.get("token"); store.set("bdk.token", token); }
+    if (params.get("api")) { apiBase = params.get("api").replace(/\/+$/, ""); store.set("bdk.api", apiBase); }
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  let timer = null;
+  let last = null;          // último /api/status
+  let hist = null;          // último /api/history
+  let busy = false;
+  let sessionsShown = 8;
+  let showTable = false;
+
+  // ---------- formatação ----------
+  function fmtDuration(totalSeconds) {
+    if (totalSeconds == null) return "—";
+    const s = Math.max(0, Math.floor(totalSeconds));
+    const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+    return `${m}m`;
+  }
+  function fmtHours(totalSeconds) {
+    const h = totalSeconds / 3600;
+    if (h >= 100) return `${Math.round(h).toLocaleString("pt-BR")} h`;
+    if (h >= 1) return `${h.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h`;
+    return `${Math.floor(totalSeconds / 60)} min`;
+  }
+  const clean = (s) => s.replace(/\./g, "");
+  const fmtDay = (d) => clean(d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }));
+  const fmtDayShort = (d) => clean(d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit" }));
+  const fmtDM = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const fmtTime = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  // ---------- rede ----------
+  async function api(path, options = {}) {
+    const res = await fetch(apiBase + path, {
+      ...options,
+      headers: { "Authorization": "Bearer " + token, ...(options.headers || {}) },
+      cache: "no-store",
+    });
+    if (res.status === 401) throw Object.assign(new Error("Token inválido. Confira nas configurações."), { auth: true });
+    if (!res.ok) {
+      let detail = null;
+      try { detail = (await res.json()).error; } catch {}
+      throw new Error(detail || `O farm respondeu com erro ${res.status}.`);
+    }
+    return res.json();
+  }
+  const post = (path, body) => api(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+
+  function showBanner(message, kind = "error") {
+    const el = $("banner");
+    if (!message) { el.classList.add("hidden"); return; }
+    el.className = "banner " + kind;
+    el.textContent = message;
+  }
+
+  async function refresh() {
+    if (!token) { openSettings(); showBanner("Informe o token de acesso para conectar.", "warn"); return; }
+    try {
+      const data = await api("/api/status");
+      last = data;
+      render(data);
+      showBanner(null);
+      $("footer").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR");
+      loadHistory();
+      loadNotify();
+      loadBackup();
+      loadSchedule(false);
+      if ($("logs").open) loadLogs();
+    } catch (err) {
+      if (err.auth) openSettings();
+      const offlineHint = err instanceof TypeError
+        ? "Não consegui falar com o farm. A VPS está ligada? O endereço está certo?"
+        : err.message;
+      showBanner(offlineHint);
+      $("footer").textContent = "Falhou às " + new Date().toLocaleTimeString("pt-BR");
+      if (!last) { $("skeleton").textContent = "Sem dados ainda."; }
+    }
+  }
+
+  async function loadLogs() {
+    try {
+      const data = await api("/api/logs?lines=120");
+      const pre = $("log-text");
+      const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 8;
+      pre.textContent = data.lines.length ? data.lines.join("\n") : "Nenhuma linha ainda.";
+      if (atBottom) pre.scrollTop = pre.scrollHeight;
+    } catch (err) {
+      $("log-text").textContent = "Não consegui carregar o log: " + err.message;
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      hist = await api("/api/history?days=30");
+      renderHistory();
+    } catch (err) {
+      if (!hist) $("hist-summary").textContent = "Não consegui carregar o histórico.";
+    }
+  }
+
+  // ---------- tela principal ----------
+  function render(d) {
+    $("skeleton").classList.add("hidden");
+    $("content").classList.remove("hidden");
+
+    $("account").textContent = d.account + (d.steamId ? " · " + d.steamId : "");
+
+    $("dot").className = "dot " + d.state;
+    $("state").textContent = d.stateText;
+    $("state-detail").textContent =
+      d.state === "farming" ? `Sessão atual: ${fmtDuration(d.sessionSeconds)}`
+      : d.state === "paused_other" ? "Volta sozinho quando você fechar o jogo"
+      : d.state === "paused_manual" ? "Toque em Retomar para voltar a farmar"
+      : d.state === "paused_schedule" ? "Volta sozinho quando o próximo horário da agenda começar"
+      : d.state === "offline" ? "Tentando reconectar…"
+      : d.state === "locked" ? "Digite a senha abaixo para começar"
+      : "Começa em alguns segundos";
+
+    const locked = d.state === "locked";
+    $("lock").classList.toggle("hidden", !locked);
+
+    const toggle = $("btn-toggle");
+    toggle.disabled = busy || d.state === "offline" || locked;
+    toggle.textContent = d.manualPause ? "Retomar" : "Pausar";
+    toggle.className = d.manualPause ? "primary" : "";
+
+    $("s-uptime").textContent = fmtDuration(d.uptimeSeconds);
+    $("s-total").textContent = fmtHours(d.totalFarmedSeconds);
+    $("s-games").textContent = d.games.length;
+    $("s-pauses").textContent = d.pausesByOtherPc;
+    $("s-reconnects").textContent = d.reconnects;
+
+    const tokenEl = $("s-token");
+    if (d.tokenExpiresAt) {
+      const days = Math.floor((new Date(d.tokenExpiresAt) - Date.now()) / 86400000);
+      tokenEl.textContent = days + (days === 1 ? " dia" : " dias");
+      tokenEl.classList.toggle("warn", days < 14);
+    } else {
+      tokenEl.textContent = "—";
+    }
+
+    renderGames(d);
+  }
+
+  function coverImg(appId) {
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.alt = "";
+    img.src = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/capsule_184x69.jpg`;
+    img.onerror = () => img.remove();
+    return img;
+  }
+
+  function renderGames(d) {
+    const list = $("games");
+    const frag = document.createDocumentFragment();
+    const games = [...d.games].sort((a, b) => b.farmedSeconds - a.farmedSeconds);
+
+    for (const g of games) {
+      const li = document.createElement("li");
+      li.className = "game";
+
+      const cover = document.createElement("div");
+      cover.className = "cover";
+      cover.append(coverImg(g.appId));
+
+      const info = document.createElement("div");
+      info.className = "info";
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = g.name;
+      const meta = document.createElement("div");
+      meta.className = "meta num";
+      meta.textContent = `AppID ${g.appId}` + (g.steamMinutes != null ? ` · ${fmtHours(g.steamMinutes * 60)} na Steam` : "");
+      info.append(name, meta);
+
+      const hours = document.createElement("div");
+      hours.className = "hours num";
+      const strong = document.createElement("strong");
+      strong.textContent = fmtHours(g.farmedSeconds);
+      const sub = document.createElement("span");
+      sub.textContent = "pelo farm";
+      hours.append(strong, sub);
+
+      li.append(cover, info, hours);
+      frag.append(li);
+    }
+
+    list.replaceChildren(frag);
+  }
+
+  // ======================================================================
+  //  HISTÓRICO E GRÁFICOS
+  // ======================================================================
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function svgEl(tag, attrs = {}, text) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    if (text != null) el.textContent = text;
+    return el;
+  }
+
+  const REASONS = {
+    outro_pc: "Pausou: você jogou em outro PC",
+    painel: "Pausado pelo painel",
+    desconexao: "A conexão com a Steam caiu",
+    lista: "Lista de jogos alterada",
+    encerrado: "Programa reiniciado ou parado",
+    agenda: "Pausado pela agenda",
+    queda: "O servidor desligou ou caiu",
+  };
+
+  const tipMap = new Map();
+
+  function dayStarts(n) {
+    const now = new Date();
+    const out = [];
+    for (let k = n - 1; k >= 0; k--) out.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - k));
+    return out;
+  }
+  const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
+  /** Para cada dia local, soma o tempo farmando e guarda os blocos (para a linha do tempo). */
+  function aggregate(sessions, n, nowSec) {
+    return dayStarts(n).map((d0) => {
+      const a = d0.getTime() / 1000, b = nextDay(d0).getTime() / 1000;
+      let secs = 0, gameSecs = 0, count = 0;
+      const blocks = [];
+      for (const s of sessions) {
+        const en = s.end == null ? nowSec : s.end;
+        const lo = Math.max(s.start, a), hi = Math.min(en, b);
+        if (hi > lo) {
+          secs += hi - lo;
+          gameSecs += (hi - lo) * s.games.length;
+          count++;
+          blocks.push({ lo, hi, s });
+        }
+      }
+      return { d0, a, b, secs, gameSecs, count, blocks };
+    });
+  }
+
+  function niceMax(hours) {
+    for (const m of [1, 2, 3, 4, 6, 8, 12, 24]) if (hours * 1.05 <= m) return m;
+    return 24;
+  }
+  const fmtTick = (v) => (Number.isInteger(v) ? String(v) : v.toLocaleString("pt-BR", { maximumFractionDigits: 1 }));
+
+  function renderHistory() {
+    if (!hist) return;
+    tipMap.clear();
+
+    const nowSec = Date.now() / 1000;
+    const days = aggregate(hist.sessions, histDays, nowSec);
+
+    // ---- resumo do período
+    const secs = days.reduce((t, d) => t + d.secs, 0);
+    const gameSecs = days.reduce((t, d) => t + d.gameSecs, 0);
+    const since = days[0].a;
+    const sessionCount = hist.sessions.filter((s) => (s.end == null ? nowSec : s.end) >= since).length;
+
+    const sum = $("hist-summary");
+    sum.replaceChildren();
+    for (const [label, value] of [
+      [`Farmando (${histDays} dias)`, fmtHours(secs)],
+      ["Soma nos jogos", fmtHours(gameSecs)],
+      ["Sessões", String(sessionCount)],
+    ]) {
+      const box = document.createElement("div");
+      const l = document.createElement("div"); l.className = "label"; l.textContent = label;
+      const v = document.createElement("div"); v.className = "value num"; v.textContent = value;
+      box.append(l, v);
+      sum.append(box);
+    }
+
+    renderDaysChart(days);
+    renderDaysTable(days);
+    renderTimeline(aggregate(hist.sessions, 7, nowSec));
+    renderSessions(nowSec);
+  }
+
+  // ---- gráfico de colunas: tempo farmando por dia
+  function renderDaysChart(days) {
+    const host = $("chart-days");
+    host.replaceChildren();
+
+    if (!days.some((d) => d.secs > 0)) {
+      const p = document.createElement("div");
+      p.className = "empty";
+      p.textContent = "Ainda não há sessões neste período. O histórico começa a ser gravado a partir desta versão.";
+      host.append(p);
+      return;
+    }
+
+    const W = Math.max(280, host.clientWidth), H = 190;
+    const m = { l: 30, r: 6, t: 20, b: 24 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+
+    const maxHours = Math.max(...days.map((d) => d.secs / 3600));
+    const top = niceMax(maxHours);
+    const y = (hours) => m.t + ph - (hours / top) * ph;
+
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Horas farmando por dia" });
+
+    for (const t of [0, top / 2, top]) {
+      svg.append(svgEl("line", { class: "grid-line", x1: m.l, x2: W - m.r, y1: y(t), y2: y(t) }));
+      svg.append(svgEl("text", { x: m.l - 6, y: y(t) + 4, "text-anchor": "end" }, fmtTick(t)));
+    }
+
+    const slot = pw / days.length;
+    const barW = Math.min(24, slot * 0.62);
+    const labelEvery = days.length <= 8 ? 1 : Math.ceil(days.length / 6);
+    const maxIdx = days.findIndex((d) => d.secs === Math.max(...days.map((x) => x.secs)));
+
+    days.forEach((d, i) => {
+      const x = m.l + i * slot + (slot - barW) / 2;
+      const h = (d.secs / 3600 / top) * ph;
+      const yTop = m.t + ph - h;
+
+      if (h > 0.5) {
+        const r = Math.min(4, h, barW / 2);
+        // coluna: ponta de cima arredondada (4px), base reta no eixo
+        svg.append(svgEl("path", {
+          class: "bar",
+          d: `M${x},${yTop + h} L${x},${yTop + r} Q${x},${yTop} ${x + r},${yTop} L${x + barW - r},${yTop} Q${x + barW},${yTop} ${x + barW},${yTop + r} L${x + barW},${yTop + h} Z`,
+        }));
+      }
+
+      if (i === maxIdx && d.secs > 0) {
+        svg.append(svgEl("text", { class: "strong", x: x + barW / 2, y: yTop - 5, "text-anchor": "middle" }, fmtDuration(d.secs)));
+      }
+
+      if (i % labelEvery === 0 || i === days.length - 1) {
+        const label = days.length <= 8 ? fmtDayShort(d.d0) : fmtDM(d.d0);
+        svg.append(svgEl("text", { x: x + barW / 2, y: H - 6, "text-anchor": "middle" }, label));
+      }
+
+      const key = "d" + i;
+      tipMap.set(key, [
+        { text: fmtDay(d.d0) + (i === days.length - 1 ? " (hoje)" : ""), strong: true },
+        { text: d.secs > 0 ? `Farmando: ${fmtDuration(d.secs)}` : "Sem farm" },
+        ...(d.secs > 0 ? [{ text: `Soma nos jogos: ${fmtHours(d.gameSecs)}` }, { text: `${d.count} ${d.count === 1 ? "sessão" : "sessões"}` }] : []),
+      ]);
+      const hit = svgEl("rect", {
+        class: "hit", x: m.l + i * slot, y: m.t, width: slot, height: ph,
+        tabindex: 0, role: "img", "data-tip": key,
+        "aria-label": `${fmtDay(d.d0)}: ${d.secs > 0 ? fmtDuration(d.secs) : "sem farm"}`,
+      });
+      svg.append(hit);
+    });
+
+    host.append(svg);
+  }
+
+  function renderDaysTable(days) {
+    const host = $("table-days");
+    host.replaceChildren();
+
+    const table = document.createElement("table");
+    table.className = "data";
+    const head = document.createElement("tr");
+    for (const [text, right] of [["Dia", false], ["Farmando", true], ["Soma nos jogos", true], ["Sessões", true]]) {
+      const th = document.createElement("th");
+      th.textContent = text;
+      if (right) th.className = "r";
+      head.append(th);
+    }
+    table.append(head);
+
+    for (const d of [...days].reverse()) {
+      const tr = document.createElement("tr");
+      const cells = [fmtDay(d.d0), d.secs > 0 ? fmtDuration(d.secs) : "—", d.secs > 0 ? fmtHours(d.gameSecs) : "—", String(d.count)];
+      cells.forEach((text, i) => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        if (i > 0) td.className = "r num";
+        tr.append(td);
+      });
+      table.append(tr);
+    }
+
+    host.append(table);
+  }
+
+  // ---- linha do tempo (7 dias x 24 h)
+  function renderTimeline(days) {
+    const host = $("chart-timeline");
+    host.replaceChildren();
+
+    if (!days.some((d) => d.secs > 0)) {
+      const p = document.createElement("div");
+      p.className = "empty";
+      p.textContent = "Nada para mostrar ainda.";
+      host.append(p);
+      return;
+    }
+
+    const W = Math.max(280, host.clientWidth);
+    const rowH = 24, m = { l: 50, r: 6, t: 18, b: 2 };
+    const pw = W - m.l - m.r;
+    const H = m.t + days.length * rowH + m.b;
+
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Linha do tempo das sessões nos últimos 7 dias" });
+
+    for (const hour of [0, 6, 12, 18, 24]) {
+      const x = m.l + (hour / 24) * pw;
+      svg.append(svgEl("line", { class: "grid-line", x1: x, x2: x, y1: m.t - 4, y2: H - m.b }));
+      svg.append(svgEl("text", { x, y: 10, "text-anchor": hour === 0 ? "start" : hour === 24 ? "end" : "middle" }, hour + "h"));
+    }
+
+    days.forEach((d, row) => {
+      const y0 = m.t + row * rowH;
+      const isToday = row === days.length - 1;
+
+      svg.append(svgEl("text", { class: isToday ? "strong" : "", x: 0, y: y0 + rowH / 2 + 4 }, isToday ? "hoje" : fmtDayShort(d.d0)));
+      svg.append(svgEl("rect", { class: "track", x: m.l, y: y0 + 4, width: pw, height: rowH - 8, rx: 4 }));
+
+      d.blocks.forEach((b, i) => {
+        const x = m.l + ((b.lo - d.a) / (d.b - d.a)) * pw;
+        const w = Math.max(2, ((b.hi - b.lo) / (d.b - d.a)) * pw);
+        svg.append(svgEl("rect", { class: "block", x, y: y0 + 6, width: w, height: rowH - 12, rx: 3 }));
+
+        const key = `t${row}-${i}`;
+        const open = b.s.end == null;
+        tipMap.set(key, [
+          { text: `${fmtDay(d.d0)} · ${fmtTime(new Date(b.lo * 1000))} → ${open ? "agora" : fmtTime(new Date(b.hi * 1000))}`, strong: true },
+          { text: `Duração neste dia: ${fmtDuration(b.hi - b.lo)}` },
+          { text: `${b.s.games.length} ${b.s.games.length === 1 ? "jogo" : "jogos"}` },
+          { text: open ? "Em andamento" : (REASONS[b.s.reason] || "Sessão encerrada") },
+        ]);
+        const hw = Math.max(w, 14);
+        svg.append(svgEl("rect", {
+          class: "hit", x: x - (hw - w) / 2, y: y0, width: hw, height: rowH,
+          tabindex: 0, role: "img", "data-tip": key,
+          "aria-label": `${fmtDay(d.d0)}, ${fmtTime(new Date(b.lo * 1000))} a ${open ? "agora" : fmtTime(new Date(b.hi * 1000))}`,
+        }));
+      });
+    });
+
+    host.append(svg);
+  }
+
+  // ---- lista de sessões
+  function renderSessions(nowSec) {
+    const list = $("sessions");
+    list.replaceChildren();
+
+    const items = [...hist.sessions].reverse(); // mais recente primeiro
+
+    if (!items.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "Nenhuma sessão registrada ainda.";
+      list.append(li);
+      $("btn-more").classList.add("hidden");
+      return;
+    }
+
+    for (const s of items.slice(0, sessionsShown)) {
+      const open = s.end == null;
+      const start = new Date(s.start * 1000);
+      const end = open ? new Date(nowSec * 1000) : new Date(s.end * 1000);
+      const sameDay = start.toDateString() === end.toDateString();
+
+      const li = document.createElement("li");
+      li.className = "session";
+
+      const row = document.createElement("div");
+      row.className = "row";
+      const when = document.createElement("div");
+      when.className = "when num";
+      when.textContent = `${fmtDay(start)} · ${fmtTime(start)} → ${open ? "agora" : fmtTime(end)}${sameDay || open ? "" : " (+1 dia)"}`;
+      const dur = document.createElement("div");
+      dur.className = "dur num";
+      dur.textContent = fmtDuration((open ? nowSec : s.end) - s.start);
+      row.append(when, dur);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      if (open) {
+        const dot = document.createElement("span");
+        dot.className = "live";
+        meta.append(dot);
+      }
+      const reason = document.createElement("span");
+      reason.textContent = open ? "Em andamento" : (REASONS[s.reason] || "Sessão encerrada");
+      const games = document.createElement("span");
+      games.textContent = `· ${s.games.length} ${s.games.length === 1 ? "jogo" : "jogos"}`;
+      meta.append(reason, games);
+
+      li.append(row, meta);
+      list.append(li);
+    }
+
+    $("btn-more").classList.toggle("hidden", items.length <= sessionsShown);
+  }
+
+  // ---------- dicas (tooltip) ----------
+  const tip = $("tip");
+  function showTip(lines, x, y) {
+    if (!lines) { hideTip(); return; }
+    tip.replaceChildren(...lines.map((l) => {
+      const div = document.createElement("div");
+      div.textContent = l.text;
+      if (l.strong) div.className = "strong";
+      return div;
+    }));
+    tip.classList.remove("hidden");
+    const r = tip.getBoundingClientRect();
+    const left = Math.min(Math.max(8, x + 12), window.innerWidth - r.width - 8);
+    let topPos = y - r.height - 12;
+    if (topPos < 8) topPos = y + 18;
+    tip.style.left = left + "px";
+    tip.style.top = topPos + "px";
+  }
+  function hideTip() { tip.classList.add("hidden"); }
+  const tipTarget = (e) => (e.target && e.target.closest ? e.target.closest("[data-tip]") : null);
+
+  document.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch") return;
+    const t = tipTarget(e);
+    if (t) showTip(tipMap.get(t.getAttribute("data-tip")), e.clientX, e.clientY); else hideTip();
+  });
+  document.addEventListener("click", (e) => {
+    const t = tipTarget(e);
+    if (t) showTip(tipMap.get(t.getAttribute("data-tip")), e.clientX, e.clientY); else hideTip();
+  });
+  document.addEventListener("focusin", (e) => {
+    const t = tipTarget(e);
+    if (!t) return;
+    const r = t.getBoundingClientRect();
+    showTip(tipMap.get(t.getAttribute("data-tip")), r.left + r.width / 2, r.top);
+  });
+  document.addEventListener("focusout", hideTip);
+  window.addEventListener("scroll", hideTip, { passive: true });
+
+  // ======================================================================
+  //  AÇÕES
+  // ======================================================================
+  async function toggleFarm() {
+    if (!last || busy) return;
+    busy = true;
+    $("btn-toggle").disabled = true;
+    try {
+      const data = await api(last.manualPause ? "/api/resume" : "/api/pause", { method: "POST" });
+      last = data;
+      render(data);
+      setTimeout(refresh, 3000); // a retomada leva ~2 s para começar
+    } catch (err) {
+      showBanner(err.message);
+    } finally {
+      busy = false;
+      if (last) render(last);
+    }
+  }
+
+  async function unlock() {
+    const input = $("in-pass");
+    const msg = $("lock-msg");
+    if (!input.value) { msg.textContent = "Digite a senha."; return; }
+    $("btn-unlock").disabled = true;
+    msg.textContent = "";
+    try {
+      last = await post("/api/unlock", { passphrase: input.value });
+      input.value = "";
+      render(last);
+      setTimeout(refresh, 4000);
+    } catch (err) {
+      msg.textContent = err.message;
+    } finally {
+      $("btn-unlock").disabled = false;
+    }
+  }
+
+  // ---------- configurações ----------
+  function openSettings() {
+    $("in-api").value = apiBase;
+    $("in-token").value = token;
+    $("settings").classList.remove("hidden");
+  }
+  function closeSettings() { $("settings").classList.add("hidden"); }
+
+  $("btn-settings").onclick = () => $("settings").classList.contains("hidden") ? openSettings() : closeSettings();
+  $("btn-cancel").onclick = closeSettings;
+  $("btn-refresh").onclick = refresh;
+  $("btn-toggle").onclick = toggleFarm;
+  $("btn-unlock").onclick = unlock;
+  $("in-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
+  $("btn-save").onclick = () => {
+    apiBase = $("in-api").value.trim().replace(/\/+$/, "");
+    token = $("in-token").value.trim();
+    store.set("bdk.api", apiBase);
+    store.set("bdk.token", token);
+    closeSettings();
+    refresh();
+  };
+  $("btn-forget").onclick = () => {
+    token = "";
+    store.set("bdk.token", "");
+    $("in-token").value = "";
+  };
+  $("logs").addEventListener("toggle", () => { if ($("logs").open) loadLogs(); });
+
+  // ---------- histórico: controles ----------
+  function setDays(n) {
+    histDays = n;
+    store.set("bdk.days", String(n));
+    $("seg-7").setAttribute("aria-pressed", String(n === 7));
+    $("seg-30").setAttribute("aria-pressed", String(n === 30));
+    renderHistory();
+  }
+  $("seg-7").onclick = () => setDays(7);
+  $("seg-30").onclick = () => setDays(30);
+  setDays(histDays);
+
+  $("btn-table").onclick = () => {
+    showTable = !showTable;
+    $("btn-table").setAttribute("aria-pressed", String(showTable));
+    $("btn-table").textContent = showTable ? "Ver gráfico" : "Ver tabela";
+    $("table-days").classList.toggle("hidden", !showTable);
+    $("chart-days").classList.toggle("hidden", showTable);
+  };
+  $("btn-more").onclick = () => { sessionsShown += 10; if (hist) renderSessions(Date.now() / 1000); };
+
+  let lastWidth = 0;
+  new ResizeObserver(() => {
+    const w = $("hist").clientWidth;
+    if (w !== lastWidth) { lastWidth = w; renderHistory(); }
+  }).observe($("hist"));
+
+  // ======================================================================
+  //  ESCOLHER JOGOS
+  // ======================================================================
+  const dlg = $("dlg-games");
+  let lib = null;               // /api/library
+  let picked = new Set();       // AppIDs marcados
+  let extraNames = new Map();   // nomes de jogos que não estão na biblioteca
+  let query = "";
+
+  function setDlgMsg(text) { $("dlg-msg").textContent = text || ""; }
+
+  function updateCounter() {
+    const el = $("sel-count");
+    el.textContent = `${picked.size}/${MAX_GAMES} selecionados`;
+    el.classList.toggle("full", picked.size >= MAX_GAMES);
+    $("dlg-save").disabled = picked.size === 0;
+  }
+
+  async function openGames() {
+    if (!last) return;
+    picked = new Set(last.games.map((g) => g.appId));
+    extraNames = new Map(last.games.map((g) => [g.appId, g.name]));
+    query = "";
+    setDlgMsg("");
+    updateCounter();
+    $("dlg-body").textContent = "Carregando a biblioteca…";
+    dlg.showModal();
+
+    try {
+      lib = await api("/api/library");
+      if (lib.configured && !lib.available && !lib.error) lib = await post("/api/library/refresh");
+    } catch (err) {
+      lib = { configured: false, available: false, error: err.message, games: [], selected: [] };
+    }
+    renderLibrary();
+  }
+
+  function renderLibrary() {
+    const body = $("dlg-body");
+    body.replaceChildren();
+
+    // 1) chave da Steam
+    if (!lib.configured || (lib.error && !lib.available)) {
+      const note = document.createElement("div");
+      note.className = "note";
+
+      if (!lib.configured) {
+        note.append("Para listar a sua biblioteca, o painel precisa de uma chave da Steam (grátis, 1 minuto): abra ");
+        const a = document.createElement("a");
+        a.href = "https://steamcommunity.com/dev/apikey";
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = "steamcommunity.com/dev/apikey";
+        note.append(a, ", no campo de domínio escreva qualquer coisa (ex.: localhost), aceite os termos e cole a chave abaixo. Ela fica guardada criptografada na VPS.");
+      } else {
+        note.textContent = lib.error;
+      }
+      body.append(note);
+
+      const label = document.createElement("label");
+      label.setAttribute("for", "in-key");
+      label.textContent = lib.configured ? "Trocar a chave da Steam" : "Chave da Steam";
+      const input = document.createElement("input");
+      input.type = "password";
+      input.id = "in-key";
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.placeholder = "32 letras e números";
+      const row = document.createElement("div");
+      row.className = "row";
+      const save = document.createElement("button");
+      save.className = "primary";
+      save.textContent = "Salvar chave";
+      save.onclick = async () => {
+        save.disabled = true;
+        setDlgMsg("");
+        try {
+          lib = await post("/api/webapikey", { key: input.value });
+          renderLibrary();
+        } catch (err) {
+          setDlgMsg(err.message);
+          save.disabled = false;
+        }
+      };
+      row.append(save);
+      if (lib.configured) {
+        const retry = document.createElement("button");
+        retry.textContent = "Tentar de novo";
+        retry.onclick = async () => {
+          retry.disabled = true;
+          try { lib = await post("/api/library/refresh"); } catch (err) { setDlgMsg(err.message); }
+          renderLibrary();
+        };
+        row.append(retry);
+      }
+      body.append(label, input, row);
+    }
+
+    // 2) busca + lista
+    if (lib.available) {
+      const search = document.createElement("input");
+      search.type = "search";
+      search.placeholder = `Buscar entre ${lib.games.length} jogos…`;
+      search.setAttribute("aria-label", "Buscar jogo");
+      search.value = query;
+      search.addEventListener("input", () => { query = search.value; renderList(); });
+      body.append(search);
+    }
+
+    const ul = document.createElement("ul");
+    ul.className = "lib";
+    ul.id = "lib-list";
+    body.append(ul);
+    renderList();
+
+    // 3) adicionar por AppID
+    const manual = document.createElement("div");
+    manual.className = "manual";
+    const idInput = document.createElement("input");
+    idInput.type = "number";
+    idInput.min = "1";
+    idInput.placeholder = "Adicionar por AppID (ex.: 730)";
+    idInput.setAttribute("aria-label", "AppID");
+    const add = document.createElement("button");
+    add.textContent = "Adicionar";
+    add.onclick = () => {
+      const id = Number(idInput.value);
+      if (!Number.isInteger(id) || id < 1) { setDlgMsg("AppID inválido."); return; }
+      if (picked.size >= MAX_GAMES && !picked.has(id)) { setDlgMsg(`O máximo é ${MAX_GAMES} jogos.`); return; }
+      picked.add(id);
+      idInput.value = "";
+      setDlgMsg("");
+      updateCounter();
+      renderList();
+    };
+    manual.append(idInput, add);
+    body.append(manual);
+
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.marginTop = "8px";
+    hint.textContent = "O farm só funciona com jogos que estão na sua biblioteca. Se a lista vier vazia, deixe os “detalhes dos jogos” do seu perfil da Steam como Públicos.";
+    body.append(hint);
+
+    updateCounter();
+  }
+
+  function renderList() {
+    const ul = $("lib-list");
+    if (!ul) return;
+
+    const known = new Map();
+    for (const g of (lib && lib.games) || []) known.set(g.appId, g);
+
+    // jogos marcados que não estão na biblioteca (adicionados por AppID)
+    const items = [...((lib && lib.games) || [])];
+    for (const id of picked) {
+      if (!known.has(id)) items.push({ appId: id, name: extraNames.get(id) || `AppID ${id}`, minutes: null });
+    }
+
+    const q = query.trim().toLowerCase();
+    let shown = items.filter((g) => !q || g.name.toLowerCase().includes(q) || String(g.appId) === q);
+    shown.sort((a, b) => (picked.has(b.appId) - picked.has(a.appId)) || a.name.localeCompare(b.name, "pt-BR"));
+
+    const LIMIT = 150;
+    const total = shown.length;
+    shown = shown.slice(0, LIMIT);
+
+    const frag = document.createDocumentFragment();
+    for (const g of shown) {
+      const li = document.createElement("li");
+      const label = document.createElement("label");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = picked.has(g.appId);
+      cb.addEventListener("change", () => {
+        if (cb.checked) {
+          if (picked.size >= MAX_GAMES) { cb.checked = false; setDlgMsg(`O máximo é ${MAX_GAMES} jogos ao mesmo tempo.`); return; }
+          picked.add(g.appId);
+        } else {
+          picked.delete(g.appId);
+        }
+        setDlgMsg("");
+        updateCounter();
+      });
+
+      const cover = document.createElement("span");
+      cover.className = "cover";
+      cover.append(coverImg(g.appId));
+
+      const info = document.createElement("span");
+      info.className = "info";
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = g.name;
+      const meta = document.createElement("span");
+      meta.className = "meta num";
+      meta.textContent = g.minutes == null ? `AppID ${g.appId}` : `${fmtHours(g.minutes * 60)} na Steam`;
+      info.append(name, meta);
+
+      label.append(cb, cover, info);
+      li.append(label);
+      frag.append(li);
+    }
+
+    if (total > LIMIT) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = `Mostrando ${LIMIT} de ${total}. Use a busca para achar os outros.`;
+      frag.append(li);
+    } else if (!total) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = q ? "Nenhum jogo encontrado." : "Nenhum jogo na lista ainda.";
+      frag.append(li);
+    }
+
+    ul.replaceChildren(frag);
+  }
+
+  async function saveGames() {
+    $("dlg-save").disabled = true;
+    setDlgMsg("");
+    try {
+      last = await post("/api/games", { appIds: [...picked] });
+      render(last);
+      dlg.close();
+      setTimeout(refresh, 1500);
+    } catch (err) {
+      setDlgMsg(err.message);
+      updateCounter();
+    }
+  }
+
+  $("btn-edit-games").onclick = openGames;
+  $("dlg-cancel").onclick = () => dlg.close();
+  $("dlg-save").onclick = saveGames;
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+
+  // ======================================================================
+  //  AGENDA
+  // ======================================================================
+  const DAY_LABELS = ["S", "T", "Q", "Q", "S", "S", "D"];
+  const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+  let sched = null;          // { enabled, timeZone, windows, active, nextChange }
+  let schedDirty = false;
+
+  function setSchMsg(text, ok) {
+    const el = $("sch-msg");
+    el.textContent = text || "";
+    el.style.color = ok ? "var(--accent)" : "var(--danger)";
+  }
+
+  function fmtNext(unix, tz) {
+    try {
+      return new Date(unix * 1000).toLocaleString("pt-BR", { timeZone: tz, weekday: "short", hour: "2-digit", minute: "2-digit" }).replace(/\./g, "");
+    } catch { return new Date(unix * 1000).toLocaleString("pt-BR", { weekday: "short", hour: "2-digit", minute: "2-digit" }).replace(/\./g, ""); }
+  }
+
+  function renderSchedStatus() {
+    if (!sched) return;
+    const el = $("sched-state");
+    if (!sched.enabled) { el.textContent = "Agenda desligada: o farm roda o tempo todo."; return; }
+    el.textContent = (sched.active ? "Agora: dentro do horário." : "Agora: fora do horário.") +
+      (sched.nextChange ? ` Próxima mudança: ${fmtNext(sched.nextChange, sched.timeZone)}.` : "");
+  }
+
+  function renderWindows() {
+    const host = $("sch-windows");
+    host.replaceChildren();
+
+    sched.windows.forEach((w, idx) => {
+      const box = document.createElement("div");
+      box.className = "win";
+
+      const days = document.createElement("div");
+      days.className = "days";
+      DAY_LABELS.forEach((label, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.textContent = label;
+        b.title = DAY_NAMES[i];
+        b.setAttribute("aria-label", DAY_NAMES[i]);
+        b.setAttribute("aria-pressed", String(w.days.includes(i + 1)));
+        b.onclick = () => {
+          const d = i + 1;
+          w.days = w.days.includes(d) ? w.days.filter((x) => x !== d) : [...w.days, d].sort();
+          schedDirty = true;
+          b.setAttribute("aria-pressed", String(w.days.includes(d)));
+        };
+        days.append(b);
+      });
+
+      const times = document.createElement("div");
+      times.className = "times";
+      const mk = (value, key) => {
+        const input = document.createElement("input");
+        input.type = "time";
+        input.value = value;
+        input.setAttribute("aria-label", key === "start" ? "Início" : "Fim");
+        input.onchange = () => { w[key] = input.value; schedDirty = true; };
+        return input;
+      };
+      const sep = document.createElement("span");
+      sep.textContent = "até";
+      const spacer = document.createElement("span");
+      spacer.className = "grow";
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "small ghost";
+      remove.textContent = "Remover";
+      remove.onclick = () => { sched.windows.splice(idx, 1); schedDirty = true; renderWindows(); };
+      times.append(mk(w.start, "start"), sep, mk(w.end, "end"), spacer, remove);
+
+      box.append(days, times);
+      host.append(box);
+    });
+  }
+
+  function renderSchedule() {
+    $("sch-enabled").checked = sched.enabled;
+    $("sch-tz").value = sched.timeZone;
+    renderWindows();
+    renderSchedStatus();
+  }
+
+  async function loadSchedule(force) {
+    if (schedDirty && !force) return;
+    try {
+      const d = await api("/api/schedule");
+      if (schedDirty && !force) return;
+      sched = { ...d, windows: (d.windows || []).map((w) => ({ days: [...w.days], start: w.start, end: w.end })) };
+      schedDirty = false;
+      renderSchedule();
+    } catch { /* tenta de novo no próximo ciclo */ }
+  }
+
+  $("sch-enabled").onchange = () => { if (sched) { sched.enabled = $("sch-enabled").checked; schedDirty = true; } };
+  $("sch-tz").oninput = () => { if (sched) { sched.timeZone = $("sch-tz").value.trim(); schedDirty = true; } };
+  $("sch-add").onclick = () => {
+    if (!sched) return;
+    sched.windows.push({ days: [1, 2, 3, 4, 5, 6, 7], start: "22:00", end: "08:00" });
+    schedDirty = true;
+    renderWindows();
+  };
+  $("sch-night").onclick = () => {
+    if (!sched) return;
+    sched.windows = [{ days: [1, 2, 3, 4, 5, 6, 7], start: "00:00", end: "08:00" }];
+    sched.enabled = true;
+    schedDirty = true;
+    renderSchedule();
+  };
+  $("sch-save").onclick = async () => {
+    if (!sched) return;
+    $("sch-save").disabled = true;
+    try {
+      const d = await post("/api/schedule", { enabled: sched.enabled, timeZone: sched.timeZone, windows: sched.windows });
+      sched = { ...d, windows: d.windows.map((w) => ({ days: [...w.days], start: w.start, end: w.end })) };
+      schedDirty = false;
+      renderSchedule();
+      setSchMsg("Agenda salva.", true);
+      setTimeout(refresh, 1500);
+    } catch (err) { setSchMsg(err.message); }
+    $("sch-save").disabled = false;
+  };
+
+  // ======================================================================
+  //  AVISOS NO DISCORD
+  // ======================================================================
+  let notifyLoaded = false;
+
+  function setHookMsg(text, ok) {
+    const el = $("hook-msg");
+    el.textContent = text || "";
+    el.style.color = ok ? "var(--accent)" : "var(--danger)";
+  }
+
+  function renderEvents(events) {
+    for (const key of ["painel", "outro_pc", "agenda"]) {
+      const box = $("ev-" + key);
+      if (box && events) box.checked = events[key] !== false;
+    }
+  }
+  for (const key of ["painel", "outro_pc", "agenda"]) {
+    $("ev-" + key).onchange = async (e) => {
+      try { renderEvents((await post("/api/notify/events", { key, enabled: e.target.checked })).events); setHookMsg("Preferência salva.", true); }
+      catch (err) { setHookMsg(err.message); }
+    };
+  }
+
+  function renderNotify(configured) {
+    $("notify-state").textContent = configured ? "Avisos ligados." : "Avisos desligados. Cole um webhook para ligar.";
+    $("btn-hook-test").disabled = !configured;
+    $("btn-hook-remove").disabled = !configured;
+  }
+
+  async function loadNotify() {
+    if (notifyLoaded) return;
+    try {
+      const d = await api("/api/notify");
+      notifyLoaded = true;
+      renderNotify(d.configured);
+      renderEvents(d.events);
+    } catch { /* tenta de novo no próximo ciclo */ }
+  }
+
+  $("btn-hook-save").onclick = async () => {
+    const url = $("in-hook").value.trim();
+    if (!url) { setHookMsg("Cole a URL do webhook."); return; }
+    $("btn-hook-save").disabled = true;
+    try {
+      const d = await post("/api/notify/webhook", { url });
+      $("in-hook").value = "";
+      renderNotify(d.configured);
+      setHookMsg("Salvo. Toque em “Enviar teste” para conferir.", true);
+    } catch (err) { setHookMsg(err.message); }
+    $("btn-hook-save").disabled = false;
+  };
+  $("btn-hook-test").onclick = async () => {
+    $("btn-hook-test").disabled = true;
+    setHookMsg("Enviando…", true);
+    try { await post("/api/notify/test"); setHookMsg("Enviado! Confira o canal do Discord.", true); }
+    catch (err) { setHookMsg(err.message); }
+    $("btn-hook-test").disabled = false;
+  };
+  $("btn-hook-remove").onclick = async () => {
+    try { const d = await post("/api/notify/webhook", { url: "" }); renderNotify(d.configured); setHookMsg("Avisos desligados.", true); }
+    catch (err) { setHookMsg(err.message); }
+  };
+
+  // ======================================================================
+  //  BACKUP CIFRADO
+  // ======================================================================
+  let backupLoaded = false;
+
+  function setBkMsg(text, ok) {
+    const el = $("bk-msg");
+    el.textContent = text || "";
+    el.style.color = ok ? "var(--accent)" : "var(--danger)";
+  }
+
+  function renderBackup(d) {
+    const el = $("bk-state");
+    if (!d.enabled) {
+      el.textContent = "Desligado: falta a chave pública na VPS.";
+    } else if (d.count === 0) {
+      el.textContent = "Ligado (chave " + d.fingerprint + "). Ainda não há backup; o primeiro sai em instantes.";
+    } else {
+      const when = new Date(d.lastAt);
+      el.textContent = "Ligado (chave " + d.fingerprint + "). " + d.count + " backup(s); o último: " +
+        fmtDM(when) + " " + fmtTime(when) + ", " + Math.max(1, Math.round(d.lastBytes / 1024)) + " KB.";
+    }
+    $("bk-run").disabled = !d.enabled;
+    $("bk-download").disabled = !d.enabled || d.count === 0;
+  }
+
+  async function loadBackup() {
+    if (backupLoaded) return;
+    try {
+      renderBackup(await api("/api/backup"));
+      backupLoaded = true;
+    } catch { /* tenta de novo no próximo ciclo */ }
+  }
+
+  $("bk-run").onclick = async () => {
+    $("bk-run").disabled = true;
+    setBkMsg("Criando…", true);
+    try { renderBackup(await post("/api/backup/run")); setBkMsg("Backup criado.", true); }
+    catch (err) { setBkMsg(err.message); }
+    $("bk-run").disabled = false;
+  };
+  $("bk-download").onclick = async () => {
+    try {
+      const res = await fetch(apiBase + "/api/backup/download", { headers: { "Authorization": "Bearer " + token }, cache: "no-store" });
+      if (!res.ok) throw new Error("Não consegui baixar (erro " + res.status + ").");
+      const blob = await res.blob();
+      const match = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") || "");
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = match ? match[1] : "backup.bdkb";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+      setBkMsg("Baixado. Abra com o BdkTool no seu PC.", true);
+    } catch (err) { setBkMsg(err.message); }
+  };
+
+  // ---------- ciclo de atualização ----------
+  // Atualiza a cada 15 s, só com a aba visível.
+  function schedule() {
+    clearInterval(timer);
+    timer = document.hidden ? null : setInterval(refresh, REFRESH_MS);
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); schedule(); });
+
+  refresh();
+  schedule();
+})();
+</script>
+</body>
+</html>

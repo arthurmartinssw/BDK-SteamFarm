@@ -87,15 +87,6 @@ int Protect(string target)
         return 1;
     }
 
-    var publicKey = Vault.TryLoad(publicKeyPath, out var keyError);
-    if (keyError is not null) Log.Warn(keyError);
-
-    Log.Configure(publicKey, Path.Combine(dataDir, "logs"), config.LogToConsole);
-    if (publicKey is not null)
-        Log.Info($"Logs e backups cifrados com a chave pública (impressão {Hybrid.Fingerprint(publicKey)}).");
-
-    ReprotectRestoredSecrets();
-
     var loaded = SessionStore.Load(sessionPath);
     if (loaded is null)
     {
@@ -194,6 +185,15 @@ async Task<int> RunFarmAsync()
         return 1;
     }
 
+    var publicKey = Vault.TryLoad(publicKeyPath, out var keyError);
+    if (keyError is not null) Log.Warn(keyError);
+
+    Log.Configure(publicKey, Path.Combine(dataDir, "logs"), config.LogToConsole);
+    if (publicKey is not null)
+        Log.Info($"Logs e backups cifrados com a chave pública (impressão {Hybrid.Fingerprint(publicKey)}).");
+
+    ReprotectRestoredSecrets();
+
     var loaded = SessionStore.Load(sessionPath);
     if (loaded is null)
     {
@@ -242,7 +242,7 @@ async Task<int> RunFarmAsync()
     var keys = new ApiKeyStore(Path.Combine(dataDir, "webapikey.dat"), config.SteamWebApiKey);
     var notifier = new Notifier(Path.Combine(dataDir, "webhook.dat"), Path.Combine(dataDir, "notify.json"));
     var schedule = new ScheduleStore(Path.Combine(dataDir, "schedule.json"));
-    var backups = new BackupService(dataDir, publicKey);
+    var backups = new BackupService(dataDir, publicKey, config.BackupKeepDays);
     var service = new FarmService(config, session, stats, appInfo, history, gamesStore, keys, notifier, schedule);
 
     Console.CancelKeyPress += (_, e) =>
@@ -275,7 +275,8 @@ async Task<int> RunFarmAsync()
                 return true;
             }
 
-            web = ApiServer.Build(config, service, token, TryUnlock, notifier, schedule, backups);
+            var relog = new RelogService(sessionPath, service, notifier);
+            web = ApiServer.Build(config, service, token, TryUnlock, notifier, schedule, backups, relog, tokenPath);
             await web.StartAsync();
             Log.Info($"Painel em http://{config.ApiBindAddress}:{config.ApiPort}/");
         }

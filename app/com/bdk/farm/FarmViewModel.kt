@@ -49,6 +49,19 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
     var notifyMessage by mutableStateOf<String?>(null)
         private set
 
+    // renovar login da Steam
+    var relogin by mutableStateOf<Relogin?>(null)
+        private set
+    var reloginMessage by mutableStateOf<String?>(null)
+        private set
+
+    // trocar token
+    var newToken by mutableStateOf<String?>(null)
+        private set
+    var tokenMessage by mutableStateOf<String?>(null)
+        private set
+
+    private var reloginJob: Job? = null
     private var refreshing = false
     private var pollJob: Job? = null
 
@@ -109,6 +122,8 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
     fun stopPolling() {
         pollJob?.cancel()
         pollJob = null
+        reloginJob?.cancel()
+        reloginJob = null
     }
 
     fun refresh() {
@@ -121,6 +136,9 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
                 history = api.history(30)
                 schedule = api.schedule()
                 if (notifyConfigured == null) notifyConfigured = api.notifyConfigured()
+                val r = api.relogin()
+                relogin = r
+                if (r.active && reloginJob == null) watchRelogin()
             } finally {
                 refreshing = false
             }
@@ -230,6 +248,71 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 block(api)
                 notifyMessage = success
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    // ---------- renovar login da Steam ----------
+
+    fun startRelogin(password: String, passphrase: String) {
+        if (busy) return
+        busy = true
+        reloginMessage = null
+        launchApi(onError = { reloginMessage = it }) { api ->
+            try {
+                relogin = api.reloginStart(password, passphrase)
+                watchRelogin()
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun sendReloginCode(code: String) {
+        reloginMessage = null
+        launchApi(onError = { reloginMessage = it }) { api ->
+            relogin = api.reloginCode(code.trim())
+            watchRelogin()
+        }
+    }
+
+    fun cancelRelogin() {
+        launchApi(onError = { reloginMessage = it }) { api -> relogin = api.reloginCancel() }
+    }
+
+    /** Enquanto o login está em andamento, consulta o servidor a cada 2 s. */
+    private fun watchRelogin() {
+        reloginJob?.cancel()
+        reloginJob = viewModelScope.launch {
+            try {
+                while (relogin?.active == true) {
+                    delay(2_000)
+                    relogin = Api(settings.baseUrl, settings.token).relogin()
+                }
+            } catch (e: ApiException) {
+                reloginMessage = e.message
+            } finally {
+                reloginJob = null
+            }
+        }
+    }
+
+    // ---------- trocar o token ----------
+
+    fun rotateToken() {
+        if (busy) return
+        busy = true
+        tokenMessage = null
+        launchApi(onError = { tokenMessage = it }) { api ->
+            try {
+                val fresh = api.rotateToken()
+                if (fresh.isNotBlank()) {
+                    settings.token = fresh
+                    newToken = fresh
+                    tokenMessage = "Token trocado. Este app já usa o novo. Cole-o também no painel web e em outros aparelhos."
+                }
             } finally {
                 busy = false
             }

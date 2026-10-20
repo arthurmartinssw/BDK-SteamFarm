@@ -45,6 +45,9 @@ internal sealed class FarmConfig
     /// </summary>
     public bool LogToConsole { get; set; } = true;
 
+    /// <summary>Backups mais velhos que isso (em dias) são apagados da VPS. Mínimo de 7.</summary>
+    public int BackupKeepDays { get; set; } = 7;
+
     [System.Text.Json.Serialization.JsonIgnore]
     public EPersonaState Persona { get; private set; } = EPersonaState.Online;
 
@@ -86,6 +89,7 @@ internal sealed class FarmConfig
         Persona = persona;
 
         ApiPort = Math.Clamp(ApiPort, 1, 65535);
+        BackupKeepDays = Math.Clamp(BackupKeepDays, 7, 365);
 
         if (!IPAddress.TryParse(ApiBindAddress, out _))
             throw new InvalidDataException($"ApiBindAddress inválido: \"{ApiBindAddress}\". Use um IP, como 127.0.0.1.");
@@ -126,7 +130,10 @@ internal sealed class FarmConfig
 
               // Com a chave pública de backup instalada, os logs vão cifrados para data/logs.
               // false = o console/journald não guarda nada em texto puro (o painel ainda mostra os recentes).
-              "LogToConsole": true
+              "LogToConsole": true,
+
+              // Backups cifrados mais velhos que isso (em dias, mínimo 7) são apagados da VPS para não encher o disco.
+              "BackupKeepDays": 7
             }
             """;
 

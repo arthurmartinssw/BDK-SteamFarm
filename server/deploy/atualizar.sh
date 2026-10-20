@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Instala/atualiza o BdkHourFarm a partir de /root/publish.zip, sem apagar a pasta data/.
 # Uso (como root):  bash /root/atualizar.sh
+# Voltar para uma versão guardada:  bash /root/atualizar.sh /opt/bdkhourfarm-releases/publish-AAAAMMDD-HHMMSS.zip
 set -euo pipefail
 
 ZIP="${1:-/root/publish.zip}"
 DEST=/opt/bdkhourfarm
+# Quantas versões antigas guardar para voltar atrás (as mais velhas são apagadas). 0 = não guarda nenhuma.
+KEEP_RELEASES="${KEEP_RELEASES:-3}"
+RELEASES=/opt/bdkhourfarm-releases
 
 [ -f "$ZIP" ] || { echo "Não achei $ZIP. Envie com: scp .\\publish.zip root@SEU_IP:/root/"; exit 1; }
 command -v unzip >/dev/null || apt-get install -y unzip
@@ -31,6 +35,22 @@ mkdir -p "$DEST/data"
 chown bdk:bdk "$DEST/data"
 chmod 750 "$DEST"
 chmod 700 "$DEST/data"
+
+echo ">> Limpando versões antigas (guardando as $KEEP_RELEASES últimas)..."
+mkdir -p "$RELEASES"
+chmod 700 "$RELEASES"
+if [ "$KEEP_RELEASES" -gt 0 ]; then
+  case "$(readlink -f "$ZIP")" in
+    "$RELEASES"/*) ;;  # já é uma versão guardada (voltar atrás): não copia de novo
+    *) cp "$ZIP" "$RELEASES/publish-$(date +%Y%m%d-%H%M%S).zip" ;;
+  esac
+fi
+# As mais antigas além do limite são apagadas e deixam de poder ser restauradas.
+(ls -1t "$RELEASES"/publish-*.zip 2>/dev/null || true) | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -f --
+# O zip enviado em /root não precisa ficar ocupando espaço.
+[ "$ZIP" = "/root/publish.zip" ] && rm -f "$ZIP"
+journalctl --vacuum-size=100M >/dev/null 2>&1 || true
+apt-get clean >/dev/null 2>&1 || true
 
 echo ">> Atualizando o serviço (com proteções do systemd)..."
 write_unit() {

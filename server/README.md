@@ -153,7 +153,7 @@ o servidor só tem a pública (que só tranca); a **privada fica no seu PC** e �
    `chown bdk:bdk /opt/bdkhourfarm/data/backup-public.pem && systemctl restart bdkhourfarm`.
    O log do serviço mostra a "impressão" da chave; confira com `BdkTool fingerprint`.
 3. Pronto:
-   - **Backup**: um por dia em `data/backups/` (ficam os 7 últimos), também sob demanda no painel (card "Backup cifrado") ou com
+   - **Backup**: um por dia em `data/backups/` (os de mais de 7 dias são apagados; ajuste em `BackupKeepDays`, mínimo 7), também sob demanda no painel (card "Backup cifrado") ou com
      `BdkHourFarm backup`. Baixe pelo painel ou com `scp`, e abra com `BdkTool backup arquivo.bdkb`.
    - **Logs**: gravados em `data/logs/*.bdklog` (30 dias). Leia com `BdkTool logs pasta-ou-arquivo`.
      Com `"LogToConsole": false` no `config.json`, o journald também deixa de guardar o log em texto puro.
@@ -164,3 +164,12 @@ ela contém segredos em texto. O programa volta a criptografar tudo com a chave 
 
 Segurança: a chave pública só pode ser trocada por arquivo (via SSH), nunca pelo painel/API. Assim, quem roubar o token do painel
 não consegue redirecionar os backups futuros para a própria chave.
+
+### Espaço em disco
+
+- Backups: apagados automaticamente depois de `BackupKeepDays` dias (padrão e mínimo: 7). O mais recente nunca é apagado.
+  O painel tem o botão "Apagar os antigos" para limpar na hora.
+- Atualizações: o `atualizar.sh` guarda as `KEEP_RELEASES` (padrão 3) últimas versões em `/opt/bdkhourfarm-releases` para você
+  poder voltar atrás (`bash /root/atualizar.sh /opt/bdkhourfarm-releases/publish-AAAAMMDD-HHMMSS.zip`). As mais antigas são
+  apagadas, e o `publish.zip` enviado também. Para não guardar nada: `KEEP_RELEASES=0 bash /root/atualizar.sh`.
+- O journal do sistema é limitado a 100 MB a cada atualização.

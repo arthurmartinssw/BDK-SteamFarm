@@ -99,6 +99,30 @@ class Api(baseUrl: String, private val token: String) {
         call("POST", "/api/notify/test")
     }
 
+    suspend fun relogin(): Relogin = parseRelogin(call("GET", "/api/relogin"))
+
+    suspend fun reloginStart(password: String, passphrase: String): Relogin = parseRelogin(
+        call("POST", "/api/relogin/start", JSONObject().put("password", password).put("passphrase", passphrase))
+    )
+
+    suspend fun reloginCode(code: String): Relogin =
+        parseRelogin(call("POST", "/api/relogin/code", JSONObject().put("code", code)))
+
+    suspend fun reloginCancel(): Relogin = parseRelogin(call("POST", "/api/relogin/cancel"))
+
+    /** Gera um token novo; o antigo deixa de valer na hora. */
+    suspend fun rotateToken(): String = call("POST", "/api/token/rotate").optString("token")
+
+    private fun parseRelogin(j: JSONObject) = Relogin(
+        state = j.optString("state", "idle"),
+        email = j.optString("email").ifBlank { null },
+        wrongCode = j.optBoolean("wrongCode"),
+        error = j.optString("error").ifBlank { null },
+        needsPassphrase = j.optBoolean("needsPassphrase"),
+        account = j.optString("account").ifBlank { null },
+        newExpiry = j.optString("newExpiry").ifBlank { null },
+    )
+
     suspend fun library(): Library = parseLibrary(call("GET", "/api/library"))
     suspend fun refreshLibrary(): Library = parseLibrary(call("POST", "/api/library/refresh"))
     suspend fun setKey(key: String): Library =

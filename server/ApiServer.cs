@@ -10,6 +10,10 @@ internal sealed record ApiKeyRequest(string? Key);
 
 internal sealed record WebhookRequest(string? Url);
 
+internal sealed record ReloginStartRequest(string? Password, string? Passphrase);
+
+internal sealed record ReloginCodeRequest(string? Code);
+
 internal sealed record NotifyEventRequest(string? Key, bool Enabled);
 
 /// <summary>Painel web + API de monitoramento, rodando junto com o farm.</summary>
@@ -22,6 +26,31 @@ internal static class ApiServer
         "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
         "img-src 'self' data: https://*.steamstatic.com; connect-src 'self'; " +
         "base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+    /// <summary>O token atual (pode ser trocado pelo painel sem reiniciar).</summary>
+    private sealed class TokenBox
+    {
+        public volatile string Value = "";
+    }
+
+    /// <summary>Conta tokens inválidos recentes para avisar no Discord quando parecer um ataque.</summary>
+    private sealed class AuthWatch
+    {
+        private readonly object _gate = new();
+        private readonly Queue<DateTime> _failures = new();
+
+        public int Record()
+        {
+            lock (_gate)
+            {
+                var now = DateTime.UtcNow;
+                _failures.Enqueue(now);
+                while (_failures.Count > 0 && now - _failures.Peek() > TimeSpan.FromMinutes(10))
+                    _failures.Dequeue();
+                return _failures.Count;
+            }
+        }
+    }
 
     /// <summary>Limita tentativas de senha no desbloqueio: 5 erros seguidos travam por 5 minutos.</summary>
     private sealed class AttemptLimiter
@@ -57,7 +86,7 @@ internal static class ApiServer
         }
     }
 
-    public static WebApplication Build(FarmConfig config, FarmService farm, string token, Func<string, bool> tryUnlock, Notifier notifier, ScheduleStore schedule, BackupService backups)
+    public static WebApplication Build(FarmConfig config, FarmService farm, string token, Func<string, bool> tryUnlock, Notifier notifier, ScheduleStore schedule, BackupService backups, RelogService relog, string tokenPath)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -89,6 +118,8 @@ internal static class ApiServer
             app.UseCors(CorsPolicy);
 
         var limiter = new AttemptLimiter();
+        var tokenBox = new TokenBox { Value = token };
+        var authWatch = new AuthWatch();
 
         // Exige o token em tudo que começa com /api/, menos /api/health.
         app.Use(async (context, next) =>
@@ -104,8 +135,18 @@ internal static class ApiServer
                     ? header["Bearer ".Length..].Trim()
                     : null;
 
-                if (!ApiToken.Matches(provided, token))
+                if (!ApiToken.Matches(provided, tokenBox.Value))
                 {
+                    var recent = authWatch.Record();
+                    if (recent >= 10)
+                    {
+                        var ip = context.Request.Headers["X-Forwarded-For"].ToString().Split(',')[0].Trim();
+                        if (ip.Length == 0) ip = context.Connection.RemoteIpAddress?.ToString() ?? "?";
+                        notifier.Send("auth_fail", "Tentativas recusadas no painel",
+                            $"{recent} acessos com token inválido nos últimos 10 min (último IP: {ip}). Se não foi você, troque o token no painel.",
+                            Notifier.Red, TimeSpan.FromHours(1));
+                    }
+
                     await Task.Delay(500); // atrasa tentativas de adivinhar o token
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     await context.Response.WriteAsJsonAsync(new { error = "Token inválido." });
@@ -210,6 +251,52 @@ internal static class ApiServer
                 : Results.Json(new { error }, statusCode: 502);
         });
 
+        // ---- trocar o token do painel (o antigo para de valer na hora)
+
+        app.MapPost("/api/token/rotate", () =>
+        {
+            if (!string.IsNullOrWhiteSpace(config.ApiToken))
+                return Results.BadRequest(new { error = "O token está fixo no config.json (ApiToken). Apague-o de lá para poder trocar pelo painel." });
+
+            var fresh = ApiToken.Generate();
+            try
+            {
+                ApiToken.Save(tokenPath, fresh);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return Results.BadRequest(new { error = "Não consegui gravar o novo token: " + ex.Message });
+            }
+
+            tokenBox.Value = fresh;
+            Log.Info("Token do painel trocado.");
+            notifier.Send("token_rotated", "Token do painel trocado",
+                "O token de acesso foi trocado pelo painel ou app. Os outros aparelhos precisam do novo token.", Notifier.Amber);
+            return Results.Ok(new { token = fresh });
+        });
+
+        // ---- renovar o login da Steam (a senha só passa pela memória, nunca é gravada)
+
+        app.MapGet("/api/relogin", () => Results.Ok(relog.View()));
+
+        app.MapPost("/api/relogin/start", (ReloginStartRequest body) =>
+        {
+            var error = relog.Start(body.Password, body.Passphrase);
+            return error is null ? Results.Ok(relog.View()) : Results.BadRequest(new { error });
+        });
+
+        app.MapPost("/api/relogin/code", (ReloginCodeRequest body) =>
+        {
+            var error = relog.SubmitCode(body.Code);
+            return error is null ? Results.Ok(relog.View()) : Results.BadRequest(new { error });
+        });
+
+        app.MapPost("/api/relogin/cancel", () =>
+        {
+            relog.Cancel();
+            return Results.Ok(relog.View());
+        });
+
         // ---- backup cifrado (a chave pública só pode ser trocada por arquivo, via SSH: nunca pela API)
 
         app.MapGet("/api/backup", () => Results.Ok(backups.Status()));
@@ -220,6 +307,12 @@ internal static class ApiServer
             return result.Error is null
                 ? Results.Ok(backups.Status())
                 : Results.BadRequest(new { error = result.Error });
+        });
+
+        app.MapPost("/api/backup/prune", () =>
+        {
+            var removed = backups.Prune();
+            return Results.Ok(new { removed, status = backups.Status() });
         });
 
         app.MapGet("/api/backup/download", () =>

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -236,6 +237,8 @@ fun HomeTab(vm: FarmViewModel) {
 
         item { ScheduleCard(vm) }
         item { NotifyCard(vm) }
+        item { ReloginCard(vm) }
+        item { TokenCard(vm) }
     }
 
     if (confirmExit) {
@@ -377,6 +380,115 @@ private fun NotifyCard(vm: FarmViewModel) {
                 Button(onClick = { vm.saveWebhook(url); url = "" }, enabled = url.isNotBlank() && !vm.busy) { Text("Salvar") }
                 OutlinedButton(onClick = { vm.testWebhook() }, enabled = on && !vm.busy) { Text("Teste") }
                 TextButton(onClick = { vm.removeWebhook() }, enabled = on && !vm.busy) { Text("Remover") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReloginCard(vm: FarmViewModel) {
+    var password by remember { mutableStateOf("") }
+    var passphrase by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+
+    val r = vm.relogin
+    val active = r?.active == true
+    val needsCode = r?.state == "need_device_code" || r?.state == "need_email_code"
+
+    Card(colors = cardColors()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Login da Steam", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                when (r?.state) {
+                    null -> "Carregando…"
+                    "connecting" -> "Falando com a Steam…"
+                    "need_device_code" -> "Digite o código do app Steam Guard."
+                    "need_email_code" -> "Digite o código enviado para ${r?.email ?: "o seu e-mail"}."
+                    "need_confirmation" -> "Abra o app Steam no celular e confirme este login."
+                    "done" -> "Login renovado! " + (if (r?.newExpiry != null) "O novo prazo já vale." else "")
+                    "error" -> r?.error ?: "Não deu certo."
+                    else -> "Renove antes de o login vencer (veja \"Login vence em\")."
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (r?.wrongCode == true) {
+                Text("Código incorreto. Tente de novo.", color = MaterialTheme.colorScheme.error)
+            }
+
+            if (!active && r != null) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = password, onValueChange = { password = it }, singleLine = true,
+                    label = { Text("Senha da Steam") }, modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+                if (r.needsPassphrase) {
+                    OutlinedTextField(
+                        value = passphrase, onValueChange = { passphrase = it }, singleLine = true,
+                        label = { Text("Senha de desbloqueio do farm") }, modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
+                }
+                Text(
+                    "A senha vai só até a sua VPS, é usada uma vez e nunca é gravada.",
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { vm.startRelogin(password, passphrase); password = ""; passphrase = "" },
+                    enabled = password.isNotBlank() && !vm.busy,
+                ) { Text("Renovar login") }
+            }
+
+            if (needsCode) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = code, onValueChange = { code = it }, singleLine = true,
+                    label = { Text("Código") }, modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { vm.sendReloginCode(code); code = "" }, enabled = code.isNotBlank()) {
+                    Text("Enviar código")
+                }
+            }
+
+            if (active) {
+                TextButton(onClick = { vm.cancelRelogin() }) { Text("Cancelar") }
+            }
+
+            vm.reloginMessage?.let {
+                Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TokenCard(vm: FarmViewModel) {
+    var armed by remember { mutableStateOf(false) }
+
+    Card(colors = cardColors()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Segurança do painel", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Se o token vazou ou um celular foi perdido, gere outro: o antigo para de valer na hora.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { if (armed) { armed = false; vm.rotateToken() } else armed = true },
+                enabled = !vm.busy,
+            ) { Text(if (armed) "Toque de novo para confirmar" else "Gerar novo token") }
+
+            vm.newToken?.let {
+                Spacer(Modifier.height(8.dp))
+                Text("Novo token (toque e segure para copiar):", fontSize = 12.sp)
+                SelectionContainer { Text(it, fontWeight = FontWeight.SemiBold) }
+            }
+            vm.tokenMessage?.let {
+                Text(it, modifier = Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

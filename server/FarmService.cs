@@ -120,6 +120,8 @@ internal sealed class FarmService
 
     public bool IsLocked => _session is null;
 
+    public string? AccountName => _session?.AccountName;
+
     public void RequestStop() => _stop.Cancel();
 
     /// <returns>0 = encerrado normalmente; 2 = login inválido (rode "login" de novo).</returns>
@@ -259,6 +261,12 @@ internal sealed class FarmService
 
         Log.Info("Farm desbloqueado pelo painel.");
         _unlockRequested = true;
+    }
+
+    /// <summary>Troca o login salvo por um renovado (a conexão atual continua; o próximo login já usa o novo).</summary>
+    public void ReplaceSession(SavedSession session)
+    {
+        lock (_gate) _session = session;
     }
 
     /// <summary>Pausa pedida pelo painel. Vale até "Retomar" ou até o programa reiniciar.</summary>
@@ -678,7 +686,7 @@ internal sealed class FarmService
             && (expiry - DateTimeOffset.UtcNow).TotalDays is var days and < 14)
         {
             _notify.Send("token", "Login perto de vencer",
-                $"O login da conta vence em {Math.Max(0, (int)days)} dia(s). Entre na VPS e rode: BdkHourFarm login.",
+                $"O login da conta vence em {Math.Max(0, (int)days)} dia(s). Abra o painel ou o app e toque em Renovar login.",
                 Notifier.Amber, TimeSpan.FromHours(24));
         }
     }

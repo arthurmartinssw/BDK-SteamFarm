@@ -46,3 +46,18 @@ data class ScheduleInfo(
     val nextChange: Long?,
     val raw: org.json.JSONObject,
 )
+
+/** Estado da renovação do login da Steam (feita no servidor). */
+data class Relogin(
+    val state: String,
+    val email: String?,
+    val wrongCode: Boolean,
+    val error: String?,
+    val needsPassphrase: Boolean,
+    val account: String?,
+    val newExpiry: String?,
+) {
+    val active: Boolean
+        get() = state == "connecting" || state == "need_device_code" ||
+            state == "need_email_code" || state == "need_confirmation"
+}

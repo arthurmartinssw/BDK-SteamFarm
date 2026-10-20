@@ -7,7 +7,7 @@ namespace BdkHourFarm;
 
 internal sealed record BackupOutcome(string? Path, long Bytes, string? Error);
 
-internal sealed record BackupStatus(bool Enabled, string? Fingerprint, int Count, string? LastAt, long LastBytes, int Keep);
+internal sealed record BackupStatus(bool Enabled, string? Fingerprint, int Count, string? LastAt, long LastBytes, long TotalBytes, int KeepDays);
 
 /// <summary>
 /// Backup da pasta data/ em um único arquivo .bdkb, cifrado com a chave pública (só o seu PC abre).
@@ -16,17 +16,17 @@ internal sealed record BackupStatus(bool Enabled, string? Fingerprint, int Count
 /// </summary>
 internal sealed class BackupService
 {
-    public const int Keep = 7;
-
     private static readonly string[] MachineBound = { "session.json", "webhook.dat", "webapikey.dat" };
 
     private readonly object _gate = new();
     private readonly string _dataDir;
     private readonly string _backupDir;
     private readonly RSA? _key;
+    private readonly int _keepDays;
 
-    public BackupService(string dataDir, RSA? publicKey)
+    public BackupService(string dataDir, RSA? publicKey, int keepDays = 7)
     {
+        _keepDays = Math.Max(7, keepDays);
         _dataDir = dataDir;
         _backupDir = Path.Combine(dataDir, "backups");
         _key = publicKey;
@@ -70,7 +70,8 @@ internal sealed class BackupService
             files.Count,
             last is null ? null : File.GetLastWriteTimeUtc(last).ToString("o"),
             last is null ? 0 : new FileInfo(last).Length,
-            Keep);
+            files.Sum(f => new FileInfo(f).Length),
+            _keepDays);
     }
 
     public string? LatestPath() => ListBackups().LastOrDefault();
@@ -123,14 +124,31 @@ internal sealed class BackupService
         }
     }
 
-    private void Prune()
+    /// <summary>Apaga os backups mais velhos que o prazo (mínimo de 7 dias). O mais recente nunca é apagado.</summary>
+    /// <returns>Quantos arquivos foram apagados.</returns>
+    public int Prune()
     {
-        var files = ListBackups();
-
-        foreach (var old in files.Take(Math.Max(0, files.Count - Keep)))
+        lock (_gate)
         {
-            try { File.Delete(old); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* fica para a próxima */ }
+            var files = ListBackups();
+            var limit = DateTime.UtcNow.AddDays(-_keepDays);
+            var removed = 0;
+
+            foreach (var old in files.Take(Math.Max(0, files.Count - 1)))
+            {
+                try
+                {
+                    if (File.GetLastWriteTimeUtc(old) >= limit) continue;
+                    File.Delete(old);
+                    removed++;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // fica para a próxima
+                }
+            }
+
+            return removed;
         }
     }
 

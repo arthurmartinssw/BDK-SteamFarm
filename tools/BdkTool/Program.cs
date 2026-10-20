@@ -5,33 +5,116 @@ using Bdk.Crypto;
 
 // BdkTool: roda no SEU PC. Gera o par de chaves e abre backups e logs cifrados do BdkHourFarm.
 
-if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
+if (args.Length > 0 && args[0] is "-h" or "--help" or "help")
 {
     Usage();
     return 0;
 }
 
+// Sem argumentos (duplo clique) abre o menu. Arrastar um arquivo para o .exe abre direto.
+var guided = args.Length == 0 || (args.Length == 1 && (File.Exists(args[0]) || Directory.Exists(args[0])));
+var exitCode = 0;
+
 try
 {
-    return args[0].ToLowerInvariant() switch
-    {
-        "keygen" => KeyGen(args),
-        "backup" => OpenBackup(args),
-        "logs" => OpenLogs(args),
-        "fingerprint" => Fingerprint(args),
-        _ => Fail($"Comando desconhecido: {args[0]}"),
-    };
+    var work = args.Length == 0 ? Menu() : args.Length == 1 && guided ? Dropped(args[0]) : args;
+    if (work is not null)
+        exitCode = Dispatch(work);
 }
-catch (Exception ex) when (ex is CryptographicException or InvalidDataException or IOException or UnauthorizedAccessException)
+catch (Exception ex)
 {
+    // Qualquer erro aparece na tela e a janela espera Enter, em vez de fechar sozinha.
     Console.Error.WriteLine("Erro: " + ex.Message);
-    return 1;
+    exitCode = 1;
+}
+
+if (guided && !Console.IsInputRedirected)
+{
+    Console.WriteLine();
+    Console.Write("Tecle Enter para fechar...");
+    Console.ReadLine();
+}
+
+return exitCode;
+
+static int Dispatch(string[] args) => args[0].ToLowerInvariant() switch
+{
+    "keygen" => KeyGen(args),
+    "backup" => OpenBackup(args),
+    "logs" => OpenLogs(args),
+    "fingerprint" => Fingerprint(args),
+    _ => Fail($"Comando desconhecido: {args[0]}"),
+};
+
+static string[]? Dropped(string path)
+{
+    path = path.Trim().Trim('"');
+
+    if (Directory.Exists(path))
+        return new[] { "logs", path, "--out", Path.Combine(path, "logs-abertos.txt") };
+
+    var ext = Path.GetExtension(path).ToLowerInvariant();
+    if (ext == ".bdkb") return new[] { "backup", path };
+    if (ext == ".bdklog") return new[] { "logs", path, "--out", Path.ChangeExtension(path, ".txt") };
+
+    Console.Error.WriteLine("Arquivo não reconhecido. Use um backup (.bdkb) ou um log (.bdklog).");
+    return null;
+}
+
+static string[]? Menu()
+{
+    Console.WriteLine("BdkTool - backups e logs cifrados do BdkHourFarm");
+    Console.WriteLine();
+    Console.WriteLine("  1) Abrir um backup (.bdkb)");
+    Console.WriteLine("  2) Abrir logs (.bdklog ou pasta)");
+    Console.WriteLine("  3) Gerar o par de chaves (só na primeira vez)");
+    Console.WriteLine("  0) Sair");
+    Console.WriteLine();
+    Console.Write("Escolha: ");
+
+    switch (Console.ReadLine()?.Trim())
+    {
+        case "1":
+        {
+            var file = ReadPath("Arraste o arquivo de backup para esta janela e tecle Enter: ");
+            return file is null ? null : new[] { "backup", file };
+        }
+        case "2":
+        {
+            var source = ReadPath("Arraste o arquivo .bdklog (ou a pasta de logs) para esta janela e tecle Enter: ");
+            if (source is null) return null;
+
+            var output = Directory.Exists(source)
+                ? Path.Combine(source, "logs-abertos.txt")
+                : Path.ChangeExtension(source, ".txt");
+            return new[] { "logs", source, "--out", output };
+        }
+        case "3":
+        {
+            var folder = ReadPath("Pasta para salvar as chaves (Enter = pasta atual): ", allowEmpty: true) ?? ".";
+            return new[] { "keygen", "--out", folder };
+        }
+        default:
+            return null;
+    }
+}
+
+/// <summary>Lê um caminho digitado ou arrastado para a janela (remove as aspas que o Windows coloca).</summary>
+static string? ReadPath(string prompt, bool allowEmpty = false)
+{
+    Console.Write(prompt);
+    var text = (Console.ReadLine() ?? "").Trim().Trim('"');
+
+    if (text.Length == 0) return allowEmpty ? "" : null;
+    return text;
 }
 
 static void Usage()
 {
     Console.WriteLine("""
         BdkTool - abre backups e logs cifrados do BdkHourFarm (rode no seu PC)
+
+          Dica: dê duplo clique no BdkTool.exe para usar o menu, ou arraste um .bdkb / .bdklog em cima dele.
 
           BdkTool keygen [--out pasta]
               Gera o par de chaves. Cria bdk-private.pem (protegida por senha: guarde!)
@@ -90,10 +173,7 @@ static string ReadSecret(string prompt)
 
 static RSA LoadPrivateKey(string[] args)
 {
-    var path = Option(args, "--key") ?? "bdk-private.pem";
-    if (!File.Exists(path))
-        throw new IOException($"Não achei a chave privada em \"{path}\". Use --key para apontar o arquivo.");
-
+    var path = FindPrivateKey(args);
     var pem = File.ReadAllText(path);
     var password = ReadSecret("Senha da chave privada: ");
 
@@ -109,6 +189,38 @@ static RSA LoadPrivateKey(string[] args)
     }
 
     return rsa;
+}
+
+static string FindPrivateKey(string[] args)
+{
+    var given = Option(args, "--key");
+    if (given is not null)
+    {
+        if (!File.Exists(given)) throw new IOException($"Chave privada não encontrada: {given}");
+        return given;
+    }
+
+    var candidates = new List<string>
+    {
+        "bdk-private.pem",
+        Path.Combine(AppContext.BaseDirectory, "bdk-private.pem"),
+    };
+
+    if (args.Length > 1 && !args[1].StartsWith("--"))
+    {
+        var dir = Directory.Exists(args[1]) ? args[1] : Path.GetDirectoryName(Path.GetFullPath(args[1]));
+        if (dir is not null) candidates.Add(Path.Combine(dir, "bdk-private.pem"));
+    }
+
+    foreach (var candidate in candidates)
+        if (File.Exists(candidate)) return candidate;
+
+    if (Console.IsInputRedirected)
+        throw new IOException("Não achei a chave privada. Use --key para apontar o arquivo bdk-private.pem.");
+
+    var typed = ReadPath("Não achei a chave sozinho. Arraste o bdk-private.pem para esta janela e tecle Enter: ");
+    if (typed is null || !File.Exists(typed)) throw new IOException("Chave privada não encontrada.");
+    return typed;
 }
 
 static int KeyGen(string[] args)

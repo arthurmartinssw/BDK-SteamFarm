@@ -361,13 +361,48 @@
         <div class="msg" id="hook-msg" role="status"></div>
       </section>
 
+      <div class="section-head"><h2>Segurança do painel</h2></div>
+      <section class="card form" id="tokencard">
+        <div class="hint" style="margin:0 0 4px">Se o token vazou (link compartilhado sem querer, celular perdido), gere outro: o antigo para de valer na hora. Esta aba passa a usar o novo; nos outros aparelhos e no app, cole o novo token.</div>
+        <div class="row"><button id="tk-rotate">Gerar novo token</button></div>
+        <div id="tk-out" class="hidden">
+          <label for="tk-new">Novo token</label>
+          <input id="tk-new" type="text" readonly>
+          <div class="row"><button id="tk-copy">Copiar</button></div>
+        </div>
+        <div class="msg" id="tk-msg" role="status"></div>
+      </section>
+
+      <div class="section-head"><h2>Login da Steam</h2></div>
+      <section class="card form" id="relogin">
+        <div id="rl-state" class="hint" style="margin:0 0 4px">Carregando…</div>
+        <div id="rl-form">
+          <label for="rl-pass">Senha da Steam</label>
+          <input id="rl-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Senha da conta que está farmando">
+          <div id="rl-pp-box" class="hidden">
+            <label for="rl-pp">Senha de desbloqueio do farm</label>
+            <input id="rl-pp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="A senha que você usa para desbloquear">
+          </div>
+          <div class="hint">Renove antes de o login vencer (veja “Login vence em”). A senha viaja só até a sua VPS (HTTPS), é usada uma vez e nunca é gravada. Depois, a Steam pede o código do Steam Guard.</div>
+          <div class="row"><button class="primary" id="rl-start">Renovar login</button></div>
+        </div>
+        <div id="rl-code-box" class="hidden">
+          <label for="rl-code" id="rl-code-label">Código do Steam Guard</label>
+          <input id="rl-code" maxlength="12" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="Código">
+          <div class="row"><button class="primary" id="rl-send">Enviar código</button></div>
+        </div>
+        <div class="row"><button class="ghost hidden" id="rl-cancel">Cancelar</button></div>
+        <div class="msg" id="rl-msg" role="status"></div>
+      </section>
+
       <div class="section-head"><h2>Backup cifrado</h2></div>
       <section class="card form" id="backup">
         <div id="bk-state" class="hint" style="margin:0 0 4px">Carregando…</div>
-        <div class="hint">Um backup por dia (os 7 últimos ficam na VPS), cifrado com a sua chave pública: só o seu PC, com a chave privada, consegue abrir. Para ligar, coloque o arquivo <code>backup-public.pem</code> na pasta <code>data/</code> da VPS e reinicie o serviço. Por segurança, a chave não pode ser trocada por aqui.</div>
+        <div class="hint">Um backup por dia (os de mais de 7 dias são apagados da VPS), cifrado com a sua chave pública: só o seu PC, com a chave privada, consegue abrir. Para ligar, coloque o arquivo <code>backup-public.pem</code> na pasta <code>data/</code> da VPS e reinicie o serviço. Por segurança, a chave não pode ser trocada por aqui.</div>
         <div class="row">
           <button class="primary" id="bk-run">Fazer backup agora</button>
           <button id="bk-download">Baixar o último</button>
+          <button class="ghost" id="bk-prune">Apagar os antigos</button>
         </div>
         <div class="msg" id="bk-msg" role="status"></div>
       </section>
@@ -490,6 +525,7 @@
       loadHistory();
       loadNotify();
       loadBackup();
+      if (!rlTimer) loadRelogin();
       loadSchedule(false);
       if ($("logs").open) loadLogs();
     } catch (err) {
@@ -1487,6 +1523,101 @@
   };
 
   // ======================================================================
+  //  TROCAR O TOKEN DO PAINEL
+  // ======================================================================
+  let rotateArmed = null;
+  $("tk-rotate").onclick = async () => {
+    const msg = $("tk-msg");
+    if (!rotateArmed) {
+      $("tk-rotate").textContent = "Toque de novo para confirmar";
+      rotateArmed = setTimeout(() => { rotateArmed = null; $("tk-rotate").textContent = "Gerar novo token"; }, 5000);
+      return;
+    }
+    clearTimeout(rotateArmed); rotateArmed = null;
+    $("tk-rotate").textContent = "Gerar novo token";
+    try {
+      const d = await post("/api/token/rotate");
+      token = d.token;
+      store.set("bdk.token", token);
+      $("tk-new").value = token;
+      $("tk-out").classList.remove("hidden");
+      msg.style.color = "var(--accent)";
+      msg.textContent = "Token trocado. Guarde o novo e atualize o app.";
+    } catch (err) { msg.style.color = "var(--danger)"; msg.textContent = err.message; }
+  };
+  $("tk-copy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("tk-new").value); $("tk-msg").textContent = "Copiado."; }
+    catch { $("tk-new").select(); }
+  };
+
+  // ======================================================================
+  //  RENOVAR LOGIN DA STEAM
+  // ======================================================================
+  let rlTimer = null;
+  const RL_ACTIVE = ["connecting", "need_device_code", "need_email_code", "need_confirmation"];
+
+  function setRlMsg(text, ok) {
+    const el = $("rl-msg");
+    el.textContent = text || "";
+    el.style.color = ok ? "var(--accent)" : "var(--danger)";
+  }
+
+  function renderRelogin(v) {
+    const active = RL_ACTIVE.includes(v.state);
+    const needsCode = v.state === "need_device_code" || v.state === "need_email_code";
+    $("rl-form").classList.toggle("hidden", active);
+    $("rl-pp-box").classList.toggle("hidden", !v.needsPassphrase);
+    $("rl-code-box").classList.toggle("hidden", !needsCode);
+    $("rl-cancel").classList.toggle("hidden", !active);
+
+    const info = {
+      idle: "Conta " + (v.account || "?") + ". Toque em “Renovar login” para entrar de novo na Steam.",
+      connecting: "Falando com a Steam…",
+      need_device_code: "Digite o código do app Steam Guard (celular).",
+      need_email_code: "Digite o código enviado para " + (v.email || "o seu e-mail") + ".",
+      need_confirmation: "Abra o app Steam no celular e confirme este login.",
+      done: "Login renovado!",
+      error: "Não deu certo.",
+    }[v.state] || "";
+    $("rl-state").textContent = info;
+
+    if (needsCode) $("rl-code-label").textContent = v.state === "need_email_code" ? "Código do e-mail" : "Código do Steam Guard";
+    if (v.wrongCode) setRlMsg("Código incorreto. Tente de novo.");
+    else if (v.state === "error") setRlMsg(v.error || "Falhou.");
+    else if (v.state === "done") {
+      setRlMsg(v.newExpiry ? "Novo login válido até " + new Date(v.newExpiry).toLocaleDateString("pt-BR") + "." : "Salvo.", true);
+      $("rl-pass").value = ""; $("rl-pp").value = "";
+    } else setRlMsg("");
+
+    clearInterval(rlTimer);
+    rlTimer = active ? setInterval(loadRelogin, 2000) : null;
+  }
+
+  async function loadRelogin() {
+    try { renderRelogin(await api("/api/relogin")); } catch { /* tenta de novo */ }
+  }
+
+  $("rl-start").onclick = async () => {
+    const password = $("rl-pass").value;
+    if (!password) { setRlMsg("Digite a senha da Steam."); return; }
+    $("rl-start").disabled = true;
+    try {
+      renderRelogin(await post("/api/relogin/start", { password, passphrase: $("rl-pp").value }));
+      $("rl-pass").value = "";
+    } catch (err) { setRlMsg(err.message); }
+    $("rl-start").disabled = false;
+  };
+  $("rl-send").onclick = async () => {
+    const code = $("rl-code").value.trim();
+    if (!code) { setRlMsg("Digite o código."); return; }
+    try { renderRelogin(await post("/api/relogin/code", { code })); $("rl-code").value = ""; }
+    catch (err) { setRlMsg(err.message); }
+  };
+  $("rl-cancel").onclick = async () => {
+    try { renderRelogin(await post("/api/relogin/cancel")); } catch (err) { setRlMsg(err.message); }
+  };
+
+  // ======================================================================
   //  BACKUP CIFRADO
   // ======================================================================
   let backupLoaded = false;
@@ -1506,9 +1637,10 @@
     } else {
       const when = new Date(d.lastAt);
       el.textContent = "Ligado (chave " + d.fingerprint + "). " + d.count + " backup(s); o último: " +
-        fmtDM(when) + " " + fmtTime(when) + ", " + Math.max(1, Math.round(d.lastBytes / 1024)) + " KB.";
+        fmtDM(when) + " " + fmtTime(when) + ", " + Math.max(1, Math.round(d.lastBytes / 1024)) + " KB. Ocupam " + (d.totalBytes / 1048576).toFixed(1) + " MB (guarda " + d.keepDays + " dias).";
     }
     $("bk-run").disabled = !d.enabled;
+    $("bk-prune").disabled = !d.enabled || d.count < 2;
     $("bk-download").disabled = !d.enabled || d.count === 0;
   }
 
@@ -1526,6 +1658,13 @@
     try { renderBackup(await post("/api/backup/run")); setBkMsg("Backup criado.", true); }
     catch (err) { setBkMsg(err.message); }
     $("bk-run").disabled = false;
+  };
+  $("bk-prune").onclick = async () => {
+    try {
+      const d = await post("/api/backup/prune");
+      renderBackup(d.status);
+      setBkMsg(d.removed > 0 ? d.removed + " backup(s) antigo(s) apagado(s)." : "Nada para apagar: todos são mais novos que o prazo.", true);
+    } catch (err) { setBkMsg(err.message); }
   };
   $("bk-download").onclick = async () => {
     try {

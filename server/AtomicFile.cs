@@ -2,7 +2,6 @@ using System.Text;
 
 namespace BdkHourFarm;
 
-/// <summary>Grava arquivos de forma atômica (arquivo temporário + troca) e, no Linux, só o dono consegue ler (600).</summary>
 internal static class AtomicFile
 {
     public static void WriteText(string path, string contents)

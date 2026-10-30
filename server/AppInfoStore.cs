@@ -2,7 +2,6 @@ using System.Text.Json;
 
 namespace BdkHourFarm;
 
-/// <summary>Nomes dos jogos (buscados na loja da Steam uma única vez e guardados em appinfo.json).</summary>
 internal sealed class AppInfoStore
 {
     private readonly string _path;
@@ -81,7 +80,7 @@ internal sealed class AppInfoStore
 
             try
             {
-                await Task.Delay(1500, ct); // a loja limita o ritmo das consultas
+                await Task.Delay(1500, ct);
             }
             catch (OperationCanceledException)
             {

@@ -44,7 +44,6 @@ fun fmtClock(epochSeconds: Long): String =
 fun fmtDayOf(epochSeconds: Long): String =
     fmtDay(java.time.Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.systemDefault()).toLocalDate())
 
-/** Dias até o login (token) vencer; null se não souber. */
 fun daysUntil(iso: String?): Long? {
     if (iso == null) return null
     return try {
@@ -55,7 +54,6 @@ fun daysUntil(iso: String?): Long? {
     }
 }
 
-/** "seg 22:00" no fuso da agenda (cai para o fuso do aparelho se o nome do fuso não for reconhecido). */
 fun describeTime(epochSeconds: Long, zoneId: String): String {
     val zone = try {
         ZoneId.of(zoneId)

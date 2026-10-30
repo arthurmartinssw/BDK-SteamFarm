@@ -2,7 +2,6 @@ using System.Text.Json;
 
 namespace BdkHourFarm;
 
-/// <summary>Sessão salva: só o usuário e o refresh token. A senha nunca é gravada.</summary>
 internal sealed record SavedSession(string AccountName, string RefreshToken);
 
 internal sealed record SessionLoad(Protection Mode, SavedSession? Session, string? Error);
@@ -11,7 +10,6 @@ internal static class SessionStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    /// <returns>null se o arquivo não existe.</returns>
     public static SessionLoad? Load(string path)
     {
         if (!File.Exists(path)) return null;
@@ -21,7 +19,6 @@ internal static class SessionStore
         if (read.Error is not null)
             return new SessionLoad(read.Mode, null, read.Error);
 
-        // Protegida por senha: a sessão só aparece depois do desbloqueio.
         if (read.Mode == Protection.Passphrase)
             return new SessionLoad(Protection.Passphrase, null, null);
 
@@ -34,7 +31,6 @@ internal static class SessionStore
     public static SavedSession? Unlock(string path, string passphrase) =>
         Parse(SecureFile.Unlock(path, passphrase));
 
-    /// <returns>false se pediu criptografia e só deu para gravar em texto puro.</returns>
     public static bool Save(string path, SavedSession session, Protection mode, string? passphrase = null) =>
         SecureFile.Write(path, JsonSerializer.Serialize(session), mode, passphrase);
 

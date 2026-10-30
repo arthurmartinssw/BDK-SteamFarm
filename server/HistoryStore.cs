@@ -17,13 +17,8 @@ internal sealed class HistoryData
     public SessionRecord? Open { get; set; }
 }
 
-/// <summary>Uma sessão de farm, como o painel recebe. End = null significa "em andamento".</summary>
 internal sealed record SessionView(long Start, long? End, string Reason, uint[] Games);
 
-/// <summary>
-/// Histórico de sessões. Uma sessão começa quando o farm passa a "jogar" e termina quando para
-/// (outro PC, pausa pelo painel, queda de conexão, lista alterada ou programa encerrado).
-/// </summary>
 internal sealed class HistoryStore
 {
     private const int MaxSessions = 1500;
@@ -61,7 +56,6 @@ internal sealed class HistoryStore
         }
     }
 
-    /// <summary>Se o programa caiu no meio de uma sessão (servidor desligado, por exemplo), fecha-a no último sinal de vida.</summary>
     private void RecoverOpenSession()
     {
         lock (_gate)
@@ -105,7 +99,6 @@ internal sealed class HistoryStore
             _data.Open = null;
             _dirty = true;
 
-            // Sessões muito curtas (ligar e parar na hora) só fazem barulho.
             if (now - open.Start >= MinSeconds)
             {
                 open.End = now;
@@ -120,7 +113,6 @@ internal sealed class HistoryStore
         Save();
     }
 
-    /// <summary>Marca que o farm continua vivo (usado para fechar a sessão certa se o servidor cair).</summary>
     public void Heartbeat(DateTime utc)
     {
         lock (_gate)
@@ -168,7 +160,6 @@ internal sealed class HistoryStore
         }
     }
 
-    /// <summary>Sessões que tocam os últimos N dias, da mais antiga para a mais recente. A em andamento vem por último.</summary>
     public IReadOnlyList<SessionView> Query(int days)
     {
         days = Math.Clamp(days, 1, 365);

@@ -2,7 +2,6 @@ namespace BdkHourFarm;
 
 internal sealed record GameStatus(uint AppId, string Name, long FarmedSeconds, long? SteamMinutes);
 
-/// <summary>Retrato do estado do farm, devolvido por /api/status.</summary>
 internal sealed record FarmSnapshot(
     string Account,
     string? SteamId,
@@ -18,9 +17,10 @@ internal sealed record FarmSnapshot(
     int PausesByOtherPc,
     bool ManualPause,
     bool SteamHoursAvailable,
-    IReadOnlyList<GameStatus> Games);
+    IReadOnlyList<GameStatus> Games,
+    string Persona,
+    string PersonaText);
 
-/// <summary>Biblioteca para a tela "Escolher jogos".</summary>
 internal sealed record LibraryView(
     bool Configured,
     bool Available,

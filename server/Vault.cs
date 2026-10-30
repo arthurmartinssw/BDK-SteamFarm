@@ -3,12 +3,10 @@ using Bdk.Crypto;
 
 namespace BdkHourFarm;
 
-/// <summary>Carrega a chave PÚBLICA de backup (data/backup-public.pem). A privada nunca fica no servidor.</summary>
 internal static class Vault
 {
     public const string FileName = "backup-public.pem";
 
-    /// <returns>null se não há chave (recurso desligado) ou se ela é inválida (<paramref name="error"/> explica).</returns>
     public static RSA? TryLoad(string path, out string? error)
     {
         error = null;

@@ -4,9 +4,6 @@ using SteamKit2.Authentication;
 
 namespace BdkHourFarm;
 
-/// <summary>
-/// Login interativo (usuário, senha e Steam Guard). Roda uma vez; guarda só o refresh token.
-/// </summary>
 internal static class LoginFlow
 {
     public static async Task<int> RunAsync(string sessionPath)

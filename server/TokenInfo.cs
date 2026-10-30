@@ -4,7 +4,6 @@ namespace BdkHourFarm;
 
 internal static class TokenInfo
 {
-    /// <summary>O refresh token é um JWT; lê a data de expiração ("exp") só para avisar o usuário.</summary>
     public static DateTimeOffset? GetExpiry(string jwt)
     {
         try
@@ -21,7 +20,6 @@ internal static class TokenInfo
         }
         catch
         {
-            // Formato inesperado: só não mostra a data.
         }
 
         return null;

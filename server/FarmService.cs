@@ -3,15 +3,8 @@ using SteamKit2.Internal;
 
 namespace BdkHourFarm;
 
-/// <summary>
-/// Mantém a conta "jogando" a lista de AppIDs. Quando a Steam avisa que a conta começou a
-/// jogar em outro lugar, para de farmar sem brigar pela sessão; quando o outro jogo fecha,
-/// espera um pouco e volta a farmar a mesma lista.
-/// </summary>
 internal sealed class FarmService
 {
-    // Falhas de login que fazem sentido tentar de novo. O resto (token expirado/revogado etc.)
-    // é fatal: exige rodar "login" outra vez.
     private static readonly HashSet<EResult> RetryableLogonResults = new()
     {
         EResult.ServiceUnavailable,
@@ -34,6 +27,7 @@ internal sealed class FarmService
     private readonly ApiKeyStore _keys;
     private readonly Notifier _notify;
     private readonly ScheduleStore _schedule;
+    private readonly PersonaStore _persona;
     private readonly LibraryTracker _library = new();
     private readonly SteamClient _client = new();
     private readonly CallbackManager _manager;
@@ -44,16 +38,16 @@ internal sealed class FarmService
     private readonly CancellationTokenSource _stop = new();
     private CancellationTokenSource? _startTimer;
 
-    private SavedSession? _session;          // null = bloqueado (protegido por senha)
+    private SavedSession? _session;
     private volatile bool _unlockRequested;
     private volatile uint[] _appIds;
 
     private bool _connected;
     private bool _loggedOn;
     private bool _playing;
-    private bool _blocked;          // true = a conta está jogando em outro lugar
-    private bool _manualPause;      // true = pausado pelo painel
-    private bool _scheduleOff;      // true = fora do horário da agenda
+    private bool _blocked;
+    private bool _manualPause;
+    private bool _scheduleOff;
     private DateTime _lastScheduleCheck = DateTime.MinValue;
     private DateTime _playingSince;
     private DateTime _lastStatus = DateTime.UtcNow;
@@ -86,7 +80,8 @@ internal sealed class FarmService
         GamesStore gamesStore,
         ApiKeyStore keys,
         Notifier notify,
-        ScheduleStore schedule)
+        ScheduleStore schedule,
+        PersonaStore persona)
     {
         _config = config;
         _session = session;
@@ -97,9 +92,9 @@ internal sealed class FarmService
         _keys = keys;
         _notify = notify;
         _schedule = schedule;
+        _persona = persona;
         _scheduleOff = !schedule.IsActive(DateTimeOffset.UtcNow);
 
-        // A lista escolhida pelo painel (games.json) vale mais que a do config.json.
         var chosen = (gamesStore.Load() ?? config.AppIds.ToArray())
             .Where(id => id > 0)
             .Distinct()
@@ -124,13 +119,11 @@ internal sealed class FarmService
 
     public void RequestStop() => _stop.Cancel();
 
-    /// <returns>0 = encerrado normalmente; 2 = login inválido (rode "login" de novo).</returns>
     public int Run()
     {
         var games = _appIds;
         Log.Info($"Iniciando. Jogos configurados: {string.Join(", ", games)}");
 
-        // Busca os nomes dos jogos em segundo plano (só o que ainda não está em cache).
         _ = Task.Run(() => _appInfo.RefreshAsync(games, _stop.Token));
 
         if (_session is not null)
@@ -162,8 +155,6 @@ internal sealed class FarmService
         Shutdown();
         return _fatal ? 2 : 0;
     }
-
-    // ------------------------------------------------------------ painel / API
 
     public FarmSnapshot GetSnapshot()
     {
@@ -243,14 +234,79 @@ internal sealed class FarmService
             PausesByOtherPc: _pausesByOtherPc,
             ManualPause: manualPause,
             SteamHoursAvailable: minutesMap is not null,
-            Games: games);
+            Games: games,
+            Persona: _persona.Current.ToString(),
+            PersonaText: PersonaStore.Label(_persona.Current));
     }
+
+    public void SetPersona(EPersonaState state)
+    {
+        var before = _persona.Current;
+        _persona.Set(state);
+
+        bool online;
+        lock (_gate) online = _loggedOn;
+        if (online) _friends.SetPersonaState(state);
+
+        if (before == state) return;
+        Log.Info($"Status na Steam: {PersonaStore.Label(state)}.");
+        _notify.Send("persona", "Status da Steam trocado",
+            $"Agora aparece como {PersonaStore.Label(state)} para os amigos. As horas continuam contando.", Notifier.Blue);
+    }
+
+    public string SummaryText()
+    {
+        var snap = GetSnapshot();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var since = now - 86400;
+
+        long wall = 0;
+        long gameSeconds = 0;
+        foreach (var s in _history.Query(2))
+        {
+            var start = Math.Max(s.Start, since);
+            var end = Math.Min(s.End ?? now, now);
+            if (end <= start) continue;
+            wall += end - start;
+            gameSeconds += (end - start) * Math.Max(1, s.Games.Length);
+        }
+
+        var lines = new List<string>
+        {
+            $"**Agora:** {snap.StateText}",
+            $"**Farmando nas últimas 24h:** {(wall == 0 ? "nada" : FormatSpan(TimeSpan.FromSeconds(wall)))} ({wall * 100 / 86400}% do dia)",
+            $"**Horas de jogo somadas (24h):** {gameSeconds / 3600.0:0.0}h em {snap.Games.Count} jogo(s)",
+            $"**Total farmado:** {snap.TotalFarmedSeconds / 3600}h",
+            $"**Reconexões / pausas por outro PC:** {snap.Reconnects} / {snap.PausesByOtherPc}",
+            $"**Status na Steam:** {snap.PersonaText}",
+        };
+
+        if (snap.TokenExpiresAt is { } expiry)
+            lines.Add($"**Login vence em:** {Math.Max(0, (int)(expiry - DateTimeOffset.UtcNow).TotalDays)} dia(s)");
+
+        var top = snap.Games.OrderByDescending(g => g.FarmedSeconds).Take(3).ToList();
+        if (top.Count > 0)
+            lines.Add("**Mais farmados:** " + string.Join(", ", top.Select(g => $"{g.Name} ({g.FarmedSeconds / 3600}h)")));
+
+        return string.Join("\n", lines);
+    }
+
+    public ulong? SteamId
+    {
+        get
+        {
+            lock (_gate) return _steamId;
+        }
+    }
+
+    public string? WebApiKey => _keys.Get();
+
+    public string GameName(uint appId) => NameFor(appId);
 
     private string NameFor(uint appId) => _library.NameOf(appId) ?? _appInfo.GetName(appId);
 
     public IReadOnlyList<SessionView> GetHistory(int days) => _history.Query(days);
 
-    /// <summary>Desbloqueio pedido pelo painel (sessão protegida por senha).</summary>
     public void Unlock(SavedSession session)
     {
         lock (_gate)
@@ -263,13 +319,11 @@ internal sealed class FarmService
         _unlockRequested = true;
     }
 
-    /// <summary>Troca o login salvo por um renovado (a conexão atual continua; o próximo login já usa o novo).</summary>
     public void ReplaceSession(SavedSession session)
     {
         lock (_gate) _session = session;
     }
 
-    /// <summary>Pausa pedida pelo painel. Vale até "Retomar" ou até o programa reiniciar.</summary>
     public void PauseManually()
     {
         lock (_gate)
@@ -313,7 +367,6 @@ internal sealed class FarmService
         ApplySchedule();
     }
 
-    /// <summary>Confere a agenda agora: pausa ao sair do horário e retoma ao entrar. Também é chamada quando a agenda é editada.</summary>
     public void ApplySchedule()
     {
         var off = !_schedule.IsActive(DateTimeOffset.UtcNow);
@@ -355,8 +408,6 @@ internal sealed class FarmService
         }
     }
 
-    /// <summary>Troca a lista de jogos (pelo painel). Se estiver farmando, aplica na hora.</summary>
-    /// <returns>null se deu certo; senão, a mensagem de erro.</returns>
     public string? SetGames(IReadOnlyList<uint> requested)
     {
         var list = requested.Where(id => id > 0).Distinct().ToArray();
@@ -373,7 +424,6 @@ internal sealed class FarmService
 
             var wasPlaying = _playing && _loggedOn;
 
-            // Fecha a contagem com a lista antiga antes de trocar.
             if (wasPlaying)
                 EndSessionLocked("lista");
             else
@@ -394,8 +444,6 @@ internal sealed class FarmService
         _ = Task.Run(() => _appInfo.RefreshAsync(list, _stop.Token));
         return null;
     }
-
-    // ---- biblioteca (Web API da Steam)
 
     public LibraryView GetLibrary()
     {
@@ -443,8 +491,6 @@ internal sealed class FarmService
         _ = Task.Run(() => _library.RefreshAsync(key, steamId.Value, _stop.Token));
     }
 
-    // ---------------------------------------------------------------- callbacks
-
     private void OnConnected(SteamClient.ConnectedCallback _)
     {
         _connected = true;
@@ -483,10 +529,8 @@ internal sealed class FarmService
         }
 
         Log.Info($"Login OK ({Privacy.Mask(_session?.AccountName)}).");
-        _friends.SetPersonaState(_config.Persona);
+        _friends.SetPersonaState(_persona.Current);
 
-        // Só começa depois de uma espera curta: se a conta já estiver jogando em outro PC,
-        // a Steam manda o aviso nesse intervalo e o início é cancelado.
         ScheduleStart(TimeSpan.FromSeconds(_config.StartupWaitSeconds), "login");
     }
 
@@ -497,7 +541,7 @@ internal sealed class FarmService
             Log.Warn($"Login falhou ({result}). Vou tentar de novo.");
             if (result is EResult.RateLimitExceeded or EResult.AccountLoginDeniedThrottle)
                 _nextReconnectDelay = TimeSpan.FromMinutes(5);
-            return; // a Steam fecha a conexão; OnDisconnected cuida da nova tentativa
+            return;
         }
 
         Log.Error($"Login recusado ({result}). O token provavelmente expirou ou foi revogado. " +
@@ -512,7 +556,6 @@ internal sealed class FarmService
     {
         Log.Warn($"Sessão encerrada pela Steam: {callback.Result}");
 
-        // Se outra instância desta mesma conta entrou (ex.: o farm antigo), não insiste rápido.
         if (callback.Result == EResult.LoggedInElsewhere)
             _nextReconnectDelay = TimeSpan.FromSeconds(60);
     }
@@ -526,7 +569,7 @@ internal sealed class FarmService
             EndSessionLocked("desconexao");
             _loggedOn = false;
             _playing = false;
-            _blocked = false;   // o estado é reavaliado no próximo login
+            _blocked = false;
             _startTimer?.Cancel();
         }
 
@@ -558,10 +601,6 @@ internal sealed class FarmService
         }, TaskScheduler.Default);
     }
 
-    /// <summary>
-    /// A Steam avisa aqui quando a conta passa a jogar em outro lugar (blocked = true)
-    /// e quando esse outro jogo termina (blocked = false).
-    /// </summary>
     private void OnPlayingSessionState(SteamUser.PlayingSessionStateCallback callback)
     {
         bool wasBlocked;
@@ -574,7 +613,7 @@ internal sealed class FarmService
             {
                 _startTimer?.Cancel();
                 EndSessionLocked("outro_pc");
-                _playing = false; // a Steam já derrubou nossos jogos
+                _playing = false;
             }
         }
 
@@ -596,8 +635,6 @@ internal sealed class FarmService
             ScheduleStart(TimeSpan.FromSeconds(_config.ResumeDelaySeconds), "retomada");
         }
     }
-
-    // ------------------------------------------------------------ iniciar/parar
 
     private void ScheduleStart(TimeSpan delay, string reason)
     {
@@ -624,7 +661,6 @@ internal sealed class FarmService
 
         lock (_gate)
         {
-            // Confere de novo: o estado pode ter mudado durante a espera.
             if (!_loggedOn || _playing || _blocked || _manualPause || _scheduleOff || _stop.IsCancellationRequested) return;
 
             games = _appIds;
@@ -639,7 +675,6 @@ internal sealed class FarmService
         NotifyFarming(games.Length);
     }
 
-    /// <summary>Avisa quando o farm começa pela primeira vez neste início do programa ou volta depois de uma queda longa.</summary>
     private void NotifyFarming(int count)
     {
         lock (_alertGate)
@@ -664,7 +699,6 @@ internal sealed class FarmService
     private static string FormatSpan(TimeSpan span) =>
         span.TotalHours >= 1 ? $"{(int)span.TotalHours}h{span.Minutes:D2}" : $"{Math.Max(1, (int)span.TotalMinutes)} min";
 
-    /// <summary>Avisos que dependem de tempo: queda longa e login perto de vencer.</summary>
     private void CheckAlerts()
     {
         lock (_alertGate)
@@ -713,7 +747,7 @@ internal sealed class FarmService
             EndSessionLocked("encerrado");
 
             if (_playing && _loggedOn)
-                SendGamesPlayed(Array.Empty<uint>()); // lista vazia = parar de "jogar"
+                SendGamesPlayed(Array.Empty<uint>());
 
             _playing = false;
         }
@@ -731,8 +765,6 @@ internal sealed class FarmService
         _client.Disconnect();
     }
 
-    // ------------------------------------------------------- estatísticas
-
     private void AccumulateStats()
     {
         lock (_gate)
@@ -744,7 +776,6 @@ internal sealed class FarmService
         _stats.SaveIfDue();
     }
 
-    /// <summary>Soma o tempo desde a última contagem a todos os jogos, se estiver farmando. Chamar com _gate travado.</summary>
     private void AccumulateStatsLocked()
     {
         var now = DateTime.UtcNow;
@@ -753,7 +784,6 @@ internal sealed class FarmService
         {
             var delta = now - _lastTick;
 
-            // Ignora saltos grandes (ex.: relógio ajustado ou processo congelado).
             if (delta > TimeSpan.Zero && delta < TimeSpan.FromMinutes(5))
                 _stats.Add(_appIds, delta);
         }
@@ -761,7 +791,6 @@ internal sealed class FarmService
         _lastTick = now;
     }
 
-    /// <summary>Fecha a contagem e a sessão do histórico, se estava farmando. Chamar com _gate travado; quem chama zera _playing.</summary>
     private void EndSessionLocked(string reason)
     {
         AccumulateStatsLocked();
@@ -769,8 +798,6 @@ internal sealed class FarmService
         if (_playing)
             _history.End(DateTime.UtcNow, reason);
     }
-
-    // ------------------------------------------------------------------ status
 
     private void LogStatusIfDue()
     {

@@ -6,47 +6,33 @@ namespace BdkHourFarm;
 
 internal sealed class FarmConfig
 {
-    /// <summary>Limite de jogos simultâneos que a Steam aceita num único "ClientGamesPlayed".</summary>
     public const int MaxGames = 32;
 
     public List<uint> AppIds { get; set; } = new();
 
-    /// <summary>Espera após o login antes de começar, para a Steam avisar se já há jogo em outro PC.</summary>
     public int StartupWaitSeconds { get; set; } = 8;
 
-    /// <summary>Espera antes de retomar depois que a Steam avisa que o outro PC parou de jogar.</summary>
     public int ResumeDelaySeconds { get; set; } = 20;
 
-    /// <summary>Online, Invisible, Offline, Away, Busy ou Snooze.</summary>
     public string PersonaState { get; set; } = "Online";
 
-    // ---- Painel / API ----
-
-    /// <summary>Liga o painel web e a API de monitoramento.</summary>
     public bool ApiEnabled { get; set; } = true;
 
     public int ApiPort { get; set; } = 8080;
 
-    /// <summary>127.0.0.1 = só a própria VPS (o Caddy faz o HTTPS na frente). 0.0.0.0 = todas as interfaces.</summary>
     public string ApiBindAddress { get; set; } = "127.0.0.1";
 
-    /// <summary>Se vazio, um token aleatório é criado em data/api-token.txt.</summary>
     public string ApiToken { get; set; } = "";
 
-    /// <summary>Opcional: origem permitida via CORS (ex.: https://meu-painel.vercel.app).</summary>
     public string ApiAllowedOrigin { get; set; } = "";
 
-    /// <summary>Opcional: chave da Web API da Steam (também dá para colar pelo painel, na tela "Escolher jogos").</summary>
     public string SteamWebApiKey { get; set; } = "";
 
-    /// <summary>
-    /// Com a chave pública de backup instalada, os logs também vão cifrados para data/logs.
-    /// Coloque false para o console/journald não guardar nada em texto puro.
-    /// </summary>
     public bool LogToConsole { get; set; } = true;
 
-    /// <summary>Backups mais velhos que isso (em dias) são apagados da VPS. Mínimo de 7.</summary>
     public int BackupKeepDays { get; set; } = 7;
+
+    public string AiModel { get; set; } = "claude-haiku-5-5";
 
     [System.Text.Json.Serialization.JsonIgnore]
     public EPersonaState Persona { get; private set; } = EPersonaState.Online;
@@ -91,6 +77,9 @@ internal sealed class FarmConfig
         ApiPort = Math.Clamp(ApiPort, 1, 65535);
         BackupKeepDays = Math.Clamp(BackupKeepDays, 7, 365);
 
+        if (!System.Text.RegularExpressions.Regex.IsMatch(AiModel ?? "", "^[a-z0-9.\\-]{3,60}$"))
+            AiModel = "claude-haiku-5-5";
+
         if (!IPAddress.TryParse(ApiBindAddress, out _))
             throw new InvalidDataException($"ApiBindAddress inválido: \"{ApiBindAddress}\". Use um IP, como 127.0.0.1.");
     }
@@ -133,10 +122,13 @@ internal sealed class FarmConfig
               "LogToConsole": true,
 
               // Backups cifrados mais velhos que isso (em dias, mínimo 7) são apagados da VPS para não encher o disco.
-              "BackupKeepDays": 7
+              "BackupKeepDays": 7,
+
+              // Modelo do Claude usado na ajuda com conquistas (precisa da chave da Anthropic, colada no painel).
+              "AiModel": "claude-haiku-5-5"
             }
             """;
 
-        File.WriteAllText(path, template);
+        AtomicFile.WriteText(path, template);
     }
 }

@@ -12,14 +12,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        PhoneNotify.createChannel(this)
+        PhoneNotify.schedule(this)
         setContent {
-            FarmTheme {
+            FarmTheme(vm.themeMode, vm.accent) {
                 FarmApp(vm)
             }
         }
     }
 
-    // Só atualiza enquanto o app está na tela (economiza bateria e dados).
     override fun onStart() {
         super.onStart()
         vm.startPolling()

@@ -11,7 +11,6 @@ import java.net.URL
 
 class ApiException(message: String, val auth: Boolean = false) : Exception(message)
 
-/** Cliente da API do farm (a mesma que o painel web usa). Sem bibliotecas extras. */
 class Api(baseUrl: String, private val token: String) {
     private val base = baseUrl.trim().trimEnd('/')
 
@@ -81,7 +80,6 @@ class Api(baseUrl: String, private val token: String) {
 
     suspend fun schedule(): ScheduleInfo = parseSchedule(call("GET", "/api/schedule"))
 
-    /** Liga ou desliga a agenda mantendo os horários e o fuso que já estão salvos. */
     suspend fun setScheduleEnabled(current: ScheduleInfo, enabled: Boolean): ScheduleInfo {
         val body = JSONObject()
             .put("enabled", enabled)
@@ -91,6 +89,47 @@ class Api(baseUrl: String, private val token: String) {
     }
 
     suspend fun notifyConfigured(): Boolean = call("GET", "/api/notify").optBoolean("configured")
+
+    suspend fun notify(): NotifyInfo = parseNotify(call("GET", "/api/notify"))
+
+    suspend fun setNotifyEvent(key: String, enabled: Boolean): NotifyInfo =
+        parseNotify(call("POST", "/api/notify/events", JSONObject().put("key", key).put("enabled", enabled)))
+
+    suspend fun setNotifyOptions(o: NotifyOptions): NotifyInfo = parseNotify(
+        call(
+            "POST", "/api/notify/options",
+            JSONObject()
+                .put("mentionType", o.mentionType)
+                .put("mentionId", o.mentionId)
+                .put("mentionMode", o.mentionMode)
+                .put("username", o.username)
+                .put("summaryHour", o.summaryHour),
+        )
+    )
+
+    suspend fun sendSummary() {
+        call("POST", "/api/notify/summary")
+    }
+
+    suspend fun setPersona(state: String): Status =
+        parseStatus(call("POST", "/api/persona", JSONObject().put("state", state)))
+
+    private fun parseNotify(j: JSONObject): NotifyInfo {
+        val ev = j.optJSONObject("events") ?: JSONObject()
+        val events = ev.keys().asSequence().associateWith { ev.optBoolean(it) }
+        val o = j.optJSONObject("options") ?: JSONObject()
+        return NotifyInfo(
+            configured = j.optBoolean("configured"),
+            events = events,
+            options = NotifyOptions(
+                mentionType = o.optString("mentionType", "user"),
+                mentionId = if (o.isNull("mentionId")) "" else o.optString("mentionId"),
+                mentionMode = o.optString("mentionMode", "off"),
+                username = o.optString("username", "BDK Hour Farm"),
+                summaryHour = o.optInt("summaryHour", -1),
+            ),
+        )
+    }
 
     suspend fun setWebhook(url: String): Boolean =
         call("POST", "/api/notify/webhook", JSONObject().put("url", url)).optBoolean("configured")
@@ -110,7 +149,6 @@ class Api(baseUrl: String, private val token: String) {
 
     suspend fun reloginCancel(): Relogin = parseRelogin(call("POST", "/api/relogin/cancel"))
 
-    /** Gera um token novo; o antigo deixa de valer na hora. */
     suspend fun rotateToken(): String = call("POST", "/api/token/rotate").optString("token")
 
     private fun parseRelogin(j: JSONObject) = Relogin(
@@ -122,6 +160,43 @@ class Api(baseUrl: String, private val token: String) {
         account = j.optString("account").ifBlank { null },
         newExpiry = j.optString("newExpiry").ifBlank { null },
     )
+
+    suspend fun achievements(appId: Long, refresh: Boolean): AchievementList {
+        val j = call("GET", "/api/achievements?appId=$appId" + if (refresh) "&refresh=true" else "")
+        val arr = j.optJSONArray("items") ?: JSONArray()
+        val items = (0 until arr.length()).map { i ->
+            val a = arr.getJSONObject(i)
+            Achievement(
+                id = a.optString("id"),
+                name = a.optString("name"),
+                description = a.optString("description"),
+                hidden = a.optBoolean("hidden"),
+                achieved = a.optBoolean("achieved"),
+                unlockTime = a.optLong("unlockTime"),
+                percent = if (a.isNull("percent")) null else a.getDouble("percent"),
+            )
+        }
+        return AchievementList(
+            appId = appId,
+            name = j.optString("name"),
+            total = j.optInt("total"),
+            unlocked = j.optInt("unlocked"),
+            items = items,
+            error = if (j.isNull("error")) null else j.optString("error").ifBlank { null },
+        )
+    }
+
+    suspend fun aiStatus(): AiInfo = parseAi(call("GET", "/api/ai"))
+
+    suspend fun setAiKey(key: String): AiInfo = parseAi(call("POST", "/api/ai/key", JSONObject().put("key", key)))
+
+    suspend fun askAi(appId: Long, achievementId: String, question: String): String =
+        call(
+            "POST", "/api/ai/ask",
+            JSONObject().put("appId", appId).put("achievementId", achievementId).put("question", question),
+        ).optString("answer")
+
+    private fun parseAi(j: JSONObject) = AiInfo(j.optBoolean("configured"), j.optString("model"))
 
     suspend fun library(): Library = parseLibrary(call("GET", "/api/library"))
     suspend fun refreshLibrary(): Library = parseLibrary(call("POST", "/api/library/refresh"))
@@ -158,6 +233,8 @@ class Api(baseUrl: String, private val token: String) {
             pausesByOtherPc = j.optInt("pausesByOtherPc"),
             manualPause = j.optBoolean("manualPause"),
             games = games,
+            persona = j.optString("persona", "Online"),
+            personaText = j.optString("personaText", "Online"),
         )
     }
 

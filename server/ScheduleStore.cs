@@ -4,14 +4,12 @@ using System.Text.RegularExpressions;
 
 namespace BdkHourFarm;
 
-/// <summary>Uma janela em que o farm pode rodar. Days: 1 = segunda ... 7 = domingo. Start/End: "HH:mm" (End menor que Start = vira a meia-noite).</summary>
 internal sealed record ScheduleWindow(List<int>? Days, string? Start, string? End);
 
 internal sealed record ScheduleConfig(bool Enabled, string? TimeZone, List<ScheduleWindow>? Windows);
 
 internal sealed record ScheduleView(bool Enabled, string TimeZone, List<ScheduleWindow> Windows, bool Active, long? NextChange);
 
-/// <summary>Agenda de horários do farm (schedule.json). Sem janelas ou desligada = farma sempre.</summary>
 internal sealed partial class ScheduleStore
 {
     public const int MaxWindows = 14;
@@ -69,6 +67,14 @@ internal sealed partial class ScheduleStore
             NextChange(config, zone, nowUtc));
     }
 
+    public TimeZoneInfo Zone
+    {
+        get
+        {
+            lock (_gate) return _zone;
+        }
+    }
+
     public bool IsActive(DateTimeOffset nowUtc)
     {
         lock (_gate)
@@ -77,7 +83,6 @@ internal sealed partial class ScheduleStore
         }
     }
 
-    /// <summary>Próxima mudança (entrar/sair do horário), em segundos Unix; null se nunca muda.</summary>
     public long? NextChange(DateTimeOffset nowUtc)
     {
         lock (_gate)
@@ -86,7 +91,6 @@ internal sealed partial class ScheduleStore
         }
     }
 
-    /// <returns>null se salvou; senão, a mensagem de erro.</returns>
     public string? Save(ScheduleConfig input)
     {
         var error = Validate(input, out var zone);
@@ -104,7 +108,6 @@ internal sealed partial class ScheduleStore
         return null;
     }
 
-    /// <summary>Texto curto ("seg 22:00") de um instante, no fuso da agenda.</summary>
     public static string Describe(long unixSeconds, ScheduleStore store)
     {
         TimeZoneInfo zone;
@@ -116,8 +119,6 @@ internal sealed partial class ScheduleStore
         var local = TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeSeconds(unixSeconds), zone);
         return local.ToString("ddd HH:mm", CultureInfo.GetCultureInfo("pt-BR")).Replace(".", "");
     }
-
-    // ------------------------------------------------------------------ cálculo
 
     private static bool IsActiveAt(ScheduleConfig config, TimeZoneInfo zone, DateTimeOffset nowUtc)
     {
@@ -137,7 +138,7 @@ internal sealed partial class ScheduleStore
 
             if (start == end)
             {
-                if (w.Days.Contains(today)) return true; // dia inteiro
+                if (w.Days.Contains(today)) return true;
             }
             else if (start < end)
             {
@@ -145,7 +146,7 @@ internal sealed partial class ScheduleStore
             }
             else if ((w.Days.Contains(today) && minute >= start) || (w.Days.Contains(yesterday) && minute < end))
             {
-                return true; // janela que vira a meia-noite
+                return true;
             }
         }
 
@@ -173,8 +174,6 @@ internal sealed partial class ScheduleStore
 
     private static int Minutes(string hhmm) =>
         int.Parse(hhmm[..2], CultureInfo.InvariantCulture) * 60 + int.Parse(hhmm[3..], CultureInfo.InvariantCulture);
-
-    // --------------------------------------------------------------- validação
 
     private static string? Validate(ScheduleConfig config, out TimeZoneInfo? zone)
     {

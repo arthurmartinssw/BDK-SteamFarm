@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Passa o acesso SSH da VPS de senha para chave.
-# Uso (como root):
-#   bash ssh-seguro.sh chave    -> instala a chave pública enviada em /root/*.pub
-#   bash ssh-seguro.sh travar   -> desliga o login por senha (só depois de testar a chave!)
 set -euo pipefail
 
 cmd="${1:-}"

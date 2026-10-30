@@ -32,21 +32,36 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.URL
 
-// ---------- tema ----------
+val Accents = listOf(
+    Triple("green", Color(0xFF16A34A), Color(0xFF22C55E)),
+    Triple("blue", Color(0xFF2563EB), Color(0xFF60A5FA)),
+    Triple("purple", Color(0xFF7C3AED), Color(0xFFA78BFA)),
+    Triple("orange", Color(0xFFEA580C), Color(0xFFFB923C)),
+    Triple("pink", Color(0xFFDB2777), Color(0xFFF472B6)),
+)
 
 @Composable
-fun FarmTheme(content: @Composable () -> Unit) {
-    val scheme = if (isSystemInDarkTheme()) {
+fun FarmTheme(mode: String = "system", accent: String = "green", content: @Composable () -> Unit) {
+    val dark = when (mode) {
+        "light" -> false
+        "dark", "amoled" -> true
+        else -> isSystemInDarkTheme()
+    }
+    val pair = Accents.firstOrNull { it.first == accent } ?: Accents[0]
+    val scheme = if (dark) {
+        val black = mode == "amoled"
         darkColorScheme(
-            primary = Color(0xFF22C55E), onPrimary = Color(0xFF06210F),
-            background = Color(0xFF0E1116), onBackground = Color(0xFFE7EBF0),
-            surface = Color(0xFF161B22), onSurface = Color(0xFFE7EBF0),
-            surfaceVariant = Color(0xFF1D232C), onSurfaceVariant = Color(0xFF8B95A3),
+            primary = pair.third, onPrimary = Color(0xFF0B0F14),
+            secondaryContainer = pair.third.copy(alpha = 0.22f), onSecondaryContainer = Color(0xFFE7EBF0),
+            background = if (black) Color.Black else Color(0xFF0E1116), onBackground = Color(0xFFE7EBF0),
+            surface = if (black) Color(0xFF0B0D10) else Color(0xFF161B22), onSurface = Color(0xFFE7EBF0),
+            surfaceVariant = if (black) Color(0xFF15181D) else Color(0xFF1D232C), onSurfaceVariant = Color(0xFF8B95A3),
             outline = Color(0xFF262D37), error = Color(0xFFF87171),
         )
     } else {
         lightColorScheme(
-            primary = Color(0xFF16A34A), onPrimary = Color.White,
+            primary = pair.second, onPrimary = Color.White,
+            secondaryContainer = pair.second.copy(alpha = 0.14f), onSecondaryContainer = Color(0xFF12161C),
             background = Color(0xFFF4F5F7), onBackground = Color(0xFF12161C),
             surface = Color.White, onSurface = Color(0xFF12161C),
             surfaceVariant = Color(0xFFEEF0F3), onSurfaceVariant = Color(0xFF5D6673),
@@ -58,8 +73,6 @@ fun FarmTheme(content: @Composable () -> Unit) {
 
 @Composable
 fun cardColors() = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-
-// ---------- capas dos jogos (sem biblioteca de imagens) ----------
 
 private object Covers {
     private val cache = LruCache<Long, Bitmap>(80)
@@ -90,8 +103,6 @@ fun Cover(appId: Long, modifier: Modifier = Modifier) {
         }
     }
 }
-
-// ---------- raiz ----------
 
 @Composable
 fun FarmApp(vm: FarmViewModel) {
@@ -153,11 +164,18 @@ fun MainScreen(vm: FarmViewModel) {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 NavigationBarItem(selected = tab == 0, onClick = { tab = 0 }, icon = { Text("◉") }, label = { Text("Início") })
                 NavigationBarItem(selected = tab == 1, onClick = { tab = 1 }, icon = { Text("▤") }, label = { Text("Histórico") })
+                NavigationBarItem(selected = tab == 2, onClick = { tab = 2 }, icon = { Text("★") }, label = { Text("Conquistas") })
+                NavigationBarItem(selected = tab == 3, onClick = { tab = 3 }, icon = { Text("⚙") }, label = { Text("Ajustes") })
             }
         },
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
-            if (tab == 0) HomeTab(vm) else HistoryTab(vm)
+            when (tab) {
+                0 -> HomeTab(vm)
+                1 -> HistoryTab(vm)
+                2 -> AchievementsTab(vm)
+                else -> SettingsTab(vm)
+            }
         }
     }
 }
@@ -200,6 +218,7 @@ fun HomeTab(vm: FarmViewModel) {
         }
 
         item { StatusCard(vm, s) }
+        if (s.state != "locked") item { PersonaCard(vm, s) }
         if (s.state == "locked") item { LockCard(vm) }
 
         item {
@@ -236,9 +255,6 @@ fun HomeTab(vm: FarmViewModel) {
         items(sorted.size) { i -> GameRow(sorted[i]) }
 
         item { ScheduleCard(vm) }
-        item { NotifyCard(vm) }
-        item { ReloginCard(vm) }
-        item { TokenCard(vm) }
     }
 
     if (confirmExit) {
@@ -346,7 +362,7 @@ private fun GameRow(g: Game) {
 }
 
 @Composable
-private fun NotifyCard(vm: FarmViewModel) {
+fun NotifyCard(vm: FarmViewModel) {
     var url by remember { mutableStateOf("") }
     val on = vm.notifyConfigured == true
 
@@ -386,7 +402,7 @@ private fun NotifyCard(vm: FarmViewModel) {
 }
 
 @Composable
-private fun ReloginCard(vm: FarmViewModel) {
+fun ReloginCard(vm: FarmViewModel) {
     var password by remember { mutableStateOf("") }
     var passphrase by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
@@ -466,7 +482,7 @@ private fun ReloginCard(vm: FarmViewModel) {
 }
 
 @Composable
-private fun TokenCard(vm: FarmViewModel) {
+fun TokenCard(vm: FarmViewModel) {
     var armed by remember { mutableStateOf(false) }
 
     Card(colors = cardColors()) {

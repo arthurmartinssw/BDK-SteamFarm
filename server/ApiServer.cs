@@ -12,28 +12,32 @@ internal sealed record WebhookRequest(string? Url);
 
 internal sealed record ReloginStartRequest(string? Password, string? Passphrase);
 
+internal sealed record AiKeyRequest(string? Key);
+
+internal sealed record AiAskRequest(uint AppId, string? AchievementId, string? Question);
+
 internal sealed record ReloginCodeRequest(string? Code);
 
 internal sealed record NotifyEventRequest(string? Key, bool Enabled);
 
-/// <summary>Painel web + API de monitoramento, rodando junto com o farm.</summary>
+internal sealed record NotifyOptionsRequest(string? MentionType, string? MentionId, string? MentionMode, string? Username, int? SummaryHour);
+
+internal sealed record PersonaRequest(string? State);
+
 internal static class ApiServer
 {
     private const string CorsPolicy = "painel";
 
-    // O painel é um arquivo só (scripts e estilos inline); as capas dos jogos vêm do CDN da Steam.
     private const string PanelCsp =
         "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
         "img-src 'self' data: https://*.steamstatic.com; connect-src 'self'; " +
         "base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
-    /// <summary>O token atual (pode ser trocado pelo painel sem reiniciar).</summary>
     private sealed class TokenBox
     {
         public volatile string Value = "";
     }
 
-    /// <summary>Conta tokens inválidos recentes para avisar no Discord quando parecer um ataque.</summary>
     private sealed class AuthWatch
     {
         private readonly object _gate = new();
@@ -52,7 +56,6 @@ internal static class ApiServer
         }
     }
 
-    /// <summary>Limita tentativas de senha no desbloqueio: 5 erros seguidos travam por 5 minutos.</summary>
     private sealed class AttemptLimiter
     {
         private readonly object _gate = new();
@@ -86,14 +89,13 @@ internal static class ApiServer
         }
     }
 
-    public static WebApplication Build(FarmConfig config, FarmService farm, string token, Func<string, bool> tryUnlock, Notifier notifier, ScheduleStore schedule, BackupService backups, RelogService relog, string tokenPath)
+    public static WebApplication Build(FarmConfig config, FarmService farm, string token, Func<string, bool> tryUnlock, Notifier notifier, ScheduleStore schedule, BackupService backups, RelogService relog, string tokenPath, AchievementsService achievements, AiAssistant ai)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             ContentRootPath = AppContext.BaseDirectory,
         });
 
-        // Sem o log detalhado do ASP.NET; só avisos e erros.
         builder.Logging.ClearProviders();
         builder.Logging.AddSimpleConsole(o => o.SingleLine = true);
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -111,7 +113,6 @@ internal static class ApiServer
 
         var app = builder.Build();
 
-        // Se o host web receber o sinal de parada, para o farm também.
         app.Lifetime.ApplicationStopping.Register(farm.RequestStop);
 
         if (origin.Length > 0)
@@ -121,7 +122,6 @@ internal static class ApiServer
         var tokenBox = new TokenBox { Value = token };
         var authWatch = new AuthWatch();
 
-        // Exige o token em tudo que começa com /api/, menos /api/health.
         app.Use(async (context, next) =>
         {
             var path = context.Request.Path;
@@ -147,7 +147,7 @@ internal static class ApiServer
                             Notifier.Red, TimeSpan.FromHours(1));
                     }
 
-                    await Task.Delay(500); // atrasa tentativas de adivinhar o token
+                    await Task.Delay(500);
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     await context.Response.WriteAsJsonAsync(new { error = "Token inválido." });
                     return;
@@ -192,19 +192,13 @@ internal static class ApiServer
             return Results.Ok(farm.GetSnapshot());
         });
 
-        // ---- jogos e biblioteca
-
         app.MapGet("/api/library", () => Results.Ok(farm.GetLibrary()));
 
         app.MapPost("/api/library/refresh", RefreshLibraryAsync);
         app.MapPost("/api/webapikey", SetKeyAsync);
         app.MapPost("/api/games", SetGames);
 
-        // ---- desbloqueio (sessão protegida por senha)
-
         app.MapPost("/api/unlock", UnlockAsync);
-
-        // ---- agenda de horários
 
         app.MapGet("/api/schedule", () => Results.Ok(schedule.View(DateTimeOffset.UtcNow)));
 
@@ -217,14 +211,45 @@ internal static class ApiServer
             return Results.Ok(schedule.View(DateTimeOffset.UtcNow));
         });
 
-        // ---- avisos no Discord
+        app.MapPost("/api/persona", (PersonaRequest body) =>
+        {
+            if (!PersonaStore.TryParse(body.State, out var state))
+                return Results.BadRequest(new { error = "Status inválido. Use Online, Away, Busy, Invisible ou Offline." });
 
-        app.MapGet("/api/notify", () => Results.Ok(new { configured = notifier.Configured, events = notifier.Events() }));
+            try
+            {
+                farm.SetPersona(state);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return Results.BadRequest(new { error = "Não consegui salvar o status: " + ex.Message });
+            }
+
+            return Results.Ok(farm.GetSnapshot());
+        });
+
+        object NotifyView() => new { configured = notifier.Configured, events = notifier.Events(), options = notifier.Options() };
+
+        app.MapGet("/api/notify", () => Results.Ok(NotifyView()));
 
         app.MapPost("/api/notify/events", (NotifyEventRequest body) =>
             notifier.SetEnabled(body.Key ?? "", body.Enabled)
-                ? Results.Ok(new { configured = notifier.Configured, events = notifier.Events() })
+                ? Results.Ok(NotifyView())
                 : Results.BadRequest(new { error = "Tipo de aviso desconhecido." }));
+
+        app.MapPost("/api/notify/options", (NotifyOptionsRequest body) =>
+        {
+            var error = notifier.SetOptions(body.MentionType, body.MentionId, body.MentionMode, body.Username, body.SummaryHour);
+            return error is null ? Results.Ok(NotifyView()) : Results.BadRequest(new { error });
+        });
+
+        app.MapPost("/api/notify/summary", async () =>
+        {
+            var error = await notifier.SendSummaryAsync(farm.SummaryText());
+            return error is null
+                ? Results.Ok(new { ok = true })
+                : Results.Json(new { error }, statusCode: 502);
+        });
 
         app.MapPost("/api/notify/webhook", (WebhookRequest body) =>
         {
@@ -251,8 +276,6 @@ internal static class ApiServer
                 : Results.Json(new { error }, statusCode: 502);
         });
 
-        // ---- trocar o token do painel (o antigo para de valer na hora)
-
         app.MapPost("/api/token/rotate", () =>
         {
             if (!string.IsNullOrWhiteSpace(config.ApiToken))
@@ -275,8 +298,6 @@ internal static class ApiServer
             return Results.Ok(new { token = fresh });
         });
 
-        // ---- renovar o login da Steam (a senha só passa pela memória, nunca é gravada)
-
         app.MapGet("/api/relogin", () => Results.Ok(relog.View()));
 
         app.MapPost("/api/relogin/start", (ReloginStartRequest body) =>
@@ -296,8 +317,6 @@ internal static class ApiServer
             relog.Cancel();
             return Results.Ok(relog.View());
         });
-
-        // ---- backup cifrado (a chave pública só pode ser trocada por arquivo, via SSH: nunca pela API)
 
         app.MapGet("/api/backup", () => Results.Ok(backups.Status()));
 
@@ -322,6 +341,51 @@ internal static class ApiServer
                 return Results.NotFound(new { error = "Ainda não há backup." });
 
             return Results.File(File.ReadAllBytes(path), "application/octet-stream", Path.GetFileName(path));
+        });
+
+        app.MapGet("/api/achievements", async (uint? appId, bool? refresh, CancellationToken ct) =>
+        {
+            if (appId is null or 0) return Results.BadRequest(new { error = "Informe o appId." });
+            return Results.Ok(await achievements.GetAsync(appId.Value, refresh == true, ct));
+        });
+
+        app.MapGet("/api/ai", () => Results.Ok(new { configured = ai.Configured, model = ai.Model }));
+
+        app.MapPost("/api/ai/key", (AiKeyRequest body) =>
+        {
+            var key = body.Key?.Trim() ?? "";
+
+            if (key.Length == 0)
+            {
+                ai.ClearKey();
+                return Results.Ok(new { configured = false, model = ai.Model });
+            }
+
+            if (!AiKeyStore.IsValidFormat(key))
+                return Results.BadRequest(new { error = "Isso não parece uma chave da Anthropic (começa com sk-ant-)." });
+
+            ai.SetKey(key);
+            return Results.Ok(new { configured = true, model = ai.Model });
+        });
+
+        app.MapPost("/api/ai/ask", async (AiAskRequest body, CancellationToken ct) =>
+        {
+            if (!ai.Configured) return Results.BadRequest(new { error = "Cole a chave da API da Anthropic para usar a IA." });
+            if (body.AppId == 0) return Results.BadRequest(new { error = "Informe o jogo." });
+
+            var list = await achievements.GetAsync(body.AppId, false, ct);
+            AchievementItem? item = null;
+
+            if (!string.IsNullOrEmpty(body.AchievementId))
+            {
+                item = list.Items.FirstOrDefault(i => i.Id == body.AchievementId);
+                if (item is null) return Results.BadRequest(new { error = "Conquista não encontrada." });
+            }
+
+            var result = await ai.AskAsync(list.Name, item, body.Question, ct);
+            return result.Error is null
+                ? Results.Ok(new { answer = result.Answer })
+                : Results.BadRequest(new { error = result.Error });
         });
 
         return app;

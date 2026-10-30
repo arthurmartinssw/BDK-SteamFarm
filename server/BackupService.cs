@@ -9,14 +9,9 @@ internal sealed record BackupOutcome(string? Path, long Bytes, string? Error);
 
 internal sealed record BackupStatus(bool Enabled, string? Fingerprint, int Count, string? LastAt, long LastBytes, long TotalBytes, int KeepDays);
 
-/// <summary>
-/// Backup da pasta data/ em um único arquivo .bdkb, cifrado com a chave pública (só o seu PC abre).
-/// Os segredos que dependem desta máquina (sessão, webhook, chave da Steam) entram em texto dentro
-/// do pacote cifrado, para o backup funcionar em outra VPS.
-/// </summary>
 internal sealed class BackupService
 {
-    private static readonly string[] MachineBound = { "session.json", "webhook.dat", "webapikey.dat" };
+    private static readonly string[] MachineBound = { "session.json", "webhook.dat", "webapikey.dat", "aikey.dat" };
 
     private readonly object _gate = new();
     private readonly string _dataDir;
@@ -76,7 +71,6 @@ internal sealed class BackupService
 
     public string? LatestPath() => ListBackups().LastOrDefault();
 
-    /// <summary>Faz um backup por dia, enquanto o programa estiver rodando.</summary>
     public async Task RunScheduledAsync(CancellationToken stop)
     {
         if (!Enabled) return;
@@ -102,11 +96,8 @@ internal sealed class BackupService
         }
         catch (OperationCanceledException)
         {
-            // encerrando
         }
     }
-
-    // ------------------------------------------------------------------ internos
 
     private List<string> ListBackups()
     {
@@ -124,8 +115,6 @@ internal sealed class BackupService
         }
     }
 
-    /// <summary>Apaga os backups mais velhos que o prazo (mínimo de 7 dias). O mais recente nunca é apagado.</summary>
-    /// <returns>Quantos arquivos foram apagados.</returns>
     public int Prune()
     {
         lock (_gate)
@@ -144,7 +133,6 @@ internal sealed class BackupService
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    // fica para a próxima
                 }
             }
 
@@ -209,7 +197,6 @@ internal sealed class BackupService
             var read = SecureFile.Read(path);
             if (read.Error is not null) return null;
 
-            // Protegido por senha: o envelope já é portátil, vai como está.
             if (read.Mode == Protection.Passphrase) return File.ReadAllBytes(path);
 
             return read.Plaintext is null ? null : System.Text.Encoding.UTF8.GetBytes(read.Plaintext);

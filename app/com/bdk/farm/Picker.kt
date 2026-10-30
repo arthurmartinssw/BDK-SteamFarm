@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.sp
 
 private const val MAX_GAMES = 32
 
-/** Tela "Escolher jogos": marca os jogos da biblioteca que o farm deve rodar. */
 @Composable
 fun PickerScreen(vm: FarmViewModel) {
     val lib = vm.library
@@ -85,7 +84,6 @@ fun PickerScreen(vm: FarmViewModel) {
                     }
                 }
 
-                // jogos marcados que não estão na biblioteca (adicionados por AppID)
                 val known = lib.games.map { it.appId }.toSet()
                 val all = lib.games + picked.filter { it !in known }
                     .map { OwnedGame(it, extraNames[it] ?: "AppID $it", -1) }

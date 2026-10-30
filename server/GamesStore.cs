@@ -2,7 +2,6 @@ using System.Text.Json;
 
 namespace BdkHourFarm;
 
-/// <summary>Lista de jogos escolhida pelo painel (games.json). Tem prioridade sobre os AppIds do config.json.</summary>
 internal sealed class GamesStore
 {
     private readonly string _path;

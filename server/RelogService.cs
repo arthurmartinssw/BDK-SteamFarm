@@ -6,11 +6,6 @@ namespace BdkHourFarm;
 internal sealed record RelogView(
     string State, string? Email, bool WrongCode, string? Error, bool NeedsPassphrase, string? Account, DateTimeOffset? NewExpiry);
 
-/// <summary>
-/// Renova o login da Steam pelo painel/app (sem SSH). Usuário e Steam Guard seguem o mesmo fluxo do comando "login".
-/// A senha da Steam só existe na memória durante o login e nunca é gravada.
-/// Estados: idle, connecting, need_device_code, need_email_code, need_confirmation, done, error.
-/// </summary>
 internal sealed class RelogService
 {
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(10);
@@ -49,7 +44,6 @@ internal sealed class RelogService
         }
     }
 
-    /// <returns>Mensagem de erro, ou null se o login começou.</returns>
     public string? Start(string? password, string? passphrase)
     {
         if (string.IsNullOrEmpty(password)) return "Digite a senha da Steam.";
@@ -120,8 +114,6 @@ internal sealed class RelogService
 
         _cts?.Cancel();
     }
-
-    // ------------------------------------------------------------------ internos
 
     private Protection ReadMode()
     {

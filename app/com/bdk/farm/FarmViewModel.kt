@@ -3,6 +3,7 @@ package com.bdk.farm
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -25,11 +26,9 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
     var busy by mutableStateOf(false)
         private set
 
-    // lock
     var unlockError by mutableStateOf<String?>(null)
         private set
 
-    // seleção de jogos
     var showPicker by mutableStateOf(false)
         private set
     var library by mutableStateOf<Library?>(null)
@@ -37,37 +36,63 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
     var pickerError by mutableStateOf<String?>(null)
         private set
 
-    // agenda
     var schedule by mutableStateOf<ScheduleInfo?>(null)
         private set
     var scheduleMessage by mutableStateOf<String?>(null)
         private set
 
-    // avisos no Discord
     var notifyConfigured by mutableStateOf<Boolean?>(null)
         private set
     var notifyMessage by mutableStateOf<String?>(null)
         private set
+    var notifyInfo by mutableStateOf<NotifyInfo?>(null)
+        private set
 
-    // renovar login da Steam
+    var themeMode by mutableStateOf(settings.theme)
+        private set
+    var accent by mutableStateOf(settings.accent)
+        private set
+    var phoneNotify by mutableStateOf(settings.phoneNotify)
+        private set
+    var phoneInterval by mutableStateOf(settings.phoneInterval)
+        private set
+    val phoneTypes = mutableStateMapOf<String, Boolean>().apply {
+        PhoneNotify.types.forEach { (k, _) -> put(k, settings.phoneType(k)) }
+    }
+    var personaBusy by mutableStateOf(false)
+        private set
+
     var relogin by mutableStateOf<Relogin?>(null)
         private set
     var reloginMessage by mutableStateOf<String?>(null)
         private set
 
-    // trocar token
     var newToken by mutableStateOf<String?>(null)
         private set
     var tokenMessage by mutableStateOf<String?>(null)
         private set
 
+    var achGame by mutableStateOf<OwnedGame?>(null)
+        private set
+    var achievements by mutableStateOf<AchievementList?>(null)
+        private set
+    var achLoading by mutableStateOf(false)
+        private set
+    var achError by mutableStateOf<String?>(null)
+        private set
+    var ai by mutableStateOf<AiInfo?>(null)
+        private set
+    var aiMessage by mutableStateOf<String?>(null)
+        private set
+    var achLibrary by mutableStateOf<List<OwnedGame>?>(null)
+        private set
+    val aiAnswers = mutableStateMapOf<String, String>()
+    val aiLoading = mutableStateMapOf<String, Boolean>()
+
     private var reloginJob: Job? = null
     private var refreshing = false
     private var pollJob: Job? = null
 
-    // ---------- conexão ----------
-
-    /** Aceita o link completo (https://host/#token=XXX) ou endereço + token separados. */
     fun connect(link: String, tokenInput: String): String? {
         val (url, tokenFromLink) = parseLink(link)
         val token = tokenInput.trim().ifEmpty { tokenFromLink.orEmpty() }
@@ -107,8 +132,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
         return base to params["token"]
     }
 
-    // ---------- atualização ----------
-
     fun startPolling() {
         pollJob?.cancel()
         pollJob = viewModelScope.launch {
@@ -131,11 +154,17 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
         refreshing = true
         launchApi { api ->
             try {
-                status = api.status()
+                val st = api.status()
+                status = st
                 error = null
+                FarmWidget.push(getApplication<Application>(), st)
                 history = api.history(30)
                 schedule = api.schedule()
-                if (notifyConfigured == null) notifyConfigured = api.notifyConfigured()
+                if (notifyInfo == null) {
+                    val n = api.notify()
+                    notifyInfo = n
+                    notifyConfigured = n.configured
+                }
                 val r = api.relogin()
                 relogin = r
                 if (r.active && reloginJob == null) watchRelogin()
@@ -144,8 +173,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-
-    // ---------- ações ----------
 
     fun toggle() {
         val s = status ?: return
@@ -173,8 +200,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-
-    // ---------- escolher jogos ----------
 
     fun openPicker() {
         showPicker = true
@@ -213,8 +238,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---------- agenda ----------
-
     fun setScheduleEnabled(enabled: Boolean) {
         val current = schedule ?: return
         if (busy) return
@@ -230,13 +253,15 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---------- avisos no Discord ----------
-
     fun saveWebhook(url: String) = notifyCall("Salvo. Toque em \"Enviar teste\" para conferir.") { api ->
         notifyConfigured = api.setWebhook(url.trim())
+        notifyInfo = api.notify()
     }
 
-    fun removeWebhook() = notifyCall("Avisos desligados.") { api -> notifyConfigured = api.setWebhook("") }
+    fun removeWebhook() = notifyCall("Avisos desligados.") { api ->
+        notifyConfigured = api.setWebhook("")
+        notifyInfo = api.notify()
+    }
 
     fun testWebhook() = notifyCall("Enviado! Confira o canal do Discord.") { api -> api.testNotify() }
 
@@ -253,8 +278,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-
-    // ---------- renovar login da Steam ----------
 
     fun startRelogin(password: String, passphrase: String) {
         if (busy) return
@@ -282,7 +305,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
         launchApi(onError = { reloginMessage = it }) { api -> relogin = api.reloginCancel() }
     }
 
-    /** Enquanto o login está em andamento, consulta o servidor a cada 2 s. */
     private fun watchRelogin() {
         reloginJob?.cancel()
         reloginJob = viewModelScope.launch {
@@ -299,7 +321,118 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---------- trocar o token ----------
+    fun openAchievements(game: OwnedGame, refresh: Boolean = false) {
+        achGame = game
+        achError = null
+        if (!refresh) achievements = null
+        achLoading = true
+        aiAnswers.clear()
+        aiLoading.clear()
+        launchApi(onError = { achError = it; achLoading = false }) { api ->
+            try {
+                achievements = api.achievements(game.appId, refresh)
+                if (ai == null) ai = api.aiStatus()
+            } finally {
+                achLoading = false
+            }
+        }
+    }
+
+    fun closeAchievements() {
+        achGame = null
+        achievements = null
+        achError = null
+    }
+
+    fun loadAchLibrary() {
+        if (achLibrary != null) return
+        launchApi(onError = { achError = it }) { api ->
+            achLibrary = api.library().games.sortedBy { it.name.lowercase() }
+        }
+    }
+
+    fun loadAi() {
+        if (ai != null) return
+        launchApi(onError = { aiMessage = it }) { api -> ai = api.aiStatus() }
+    }
+
+    fun saveAiKey(key: String) {
+        if (busy) return
+        busy = true
+        aiMessage = null
+        launchApi(onError = { aiMessage = it }) { api ->
+            try {
+                ai = api.setAiKey(key.trim())
+                aiMessage = if (ai?.configured == true) "Salvo. Abra uma conquista e toque em \"Como conseguir?\"." else "Chave removida."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun askAi(appId: Long, achievementId: String, question: String) {
+        if (aiLoading[achievementId] == true) return
+        aiLoading[achievementId] = true
+        launchApi(onError = { aiAnswers[achievementId] = it; aiLoading[achievementId] = false }) { api ->
+            try {
+                aiAnswers[achievementId] = api.askAi(appId, achievementId, question.trim())
+            } finally {
+                aiLoading[achievementId] = false
+            }
+        }
+    }
+
+    fun setTheme(mode: String) {
+        settings.theme = mode
+        themeMode = mode
+    }
+
+    fun setAccentColor(name: String) {
+        settings.accent = name
+        accent = name
+    }
+
+    fun setPhoneNotifyEnabled(on: Boolean) {
+        settings.phoneNotify = on
+        phoneNotify = on
+        if (on) settings.lastState = status?.state.orEmpty()
+        PhoneNotify.schedule(getApplication<Application>())
+    }
+
+    fun setPhoneNotifyInterval(minutes: Int) {
+        settings.phoneInterval = minutes
+        phoneInterval = minutes
+        PhoneNotify.schedule(getApplication<Application>())
+    }
+
+    fun setPhoneType(key: String, on: Boolean) {
+        settings.setPhoneType(key, on)
+        phoneTypes[key] = on
+    }
+
+    fun setPersona(state: String) {
+        val s = status ?: return
+        if (personaBusy || s.persona == state) return
+        personaBusy = true
+        launchApi { api ->
+            try {
+                status = api.setPersona(state)
+                error = null
+            } finally {
+                personaBusy = false
+            }
+        }
+    }
+
+    fun setNotifyEvent(key: String, on: Boolean) = notifyCall("Preferência salva.") { api ->
+        notifyInfo = api.setNotifyEvent(key, on)
+    }
+
+    fun saveNotifyOptions(o: NotifyOptions) = notifyCall("Opções salvas.") { api ->
+        notifyInfo = api.setNotifyOptions(o)
+    }
+
+    fun sendSummary() = notifyCall("Resumo enviado. Confira o Discord.") { api -> api.sendSummary() }
 
     fun rotateToken() {
         if (busy) return
@@ -318,8 +451,6 @@ class FarmViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-
-    // ---------- base ----------
 
     private fun launchApi(onError: (String) -> Unit = { error = it }, block: suspend (Api) -> Unit) {
         viewModelScope.launch {

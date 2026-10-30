@@ -6,9 +6,19 @@ Painel web, app Android, avisos no Discord, agenda de horários e backup/logs ci
 | Pasta | O que é |
 |---|---|
 | `server/` | O programa da VPS (.NET 8, SteamKit2) com o painel web embutido. Veja `server/README.md`. |
-| `tools/BdkTool/` | Ferramenta do **seu PC**: gera as chaves e abre backups e logs cifrados. |
+| `tools/BdkTool/` | Ferramenta do **seu PC** (`BdkTool.exe`): gera as chaves e abre backups e logs cifrados. Duplo clique abre um menu; arrastar um `.bdkb`/`.bdklog` em cima dele abre direto. |
 | `app/` | Código do app Android (Kotlin/Compose). Veja `app/LEIA-ME.md`. |
 | `site/` | Site de apresentação (estático, pronto para a Vercel). |
+
+## Status, avisos e app
+
+- **Status na Steam** (Online, Ausente, Ocupado, Invisível, Offline) troca pelo painel ou app e fica salvo em `data/persona.txt`; o `PersonaState` do `config.json` vira só o padrão. As horas contam em qualquer status.
+- **Discord**: escolher quais eventos avisar, nome do bot, menção de usuário/cargo (nunca, só alertas vermelhos, sempre) e resumo diário no fuso da agenda (`data/notify-options.json`).
+- **App**: aba Ajustes com tema, notificações no celular (checagem periódica) e widget de tela inicial com Pausar/Retomar. Veja `app/LEIA-ME.md`.
+
+## Conquistas
+
+Aba somente leitura no painel e no app: lista as conquistas de um jogo (feitas e faltantes, com raridade) pela Web API da Steam, e uma IA opcional (API da Anthropic, chave sua, modelo em `AiModel` no `config.json`) explica como conseguir cada uma. Nada é desbloqueado por aqui.
 
 ## Compilar
 

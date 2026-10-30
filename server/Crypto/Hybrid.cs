@@ -3,11 +3,6 @@ using System.Security.Cryptography;
 
 namespace Bdk.Crypto;
 
-/// <summary>
-/// Criptografia híbrida: uma chave AES-256 aleatória cifra os dados (AES-GCM) e essa chave é
-/// trancada com a chave PÚBLICA RSA (OAEP-SHA256). O servidor só tem a pública; só quem tem a
-/// privada (no seu PC) consegue abrir. Este arquivo é compartilhado entre o servidor e o BdkTool.
-/// </summary>
 public static class Hybrid
 {
     private static readonly byte[] BlobMagic = { (byte)'B', (byte)'D', (byte)'K', (byte)'B' };
@@ -18,9 +13,6 @@ public static class Hybrid
     private const int TagBytes = 16;
     private const int MaxRecordBytes = 8 * 1024 * 1024;
 
-    // ------------------------------------------------------------------ chaves
-
-    /// <summary>Lê uma chave pública em PEM. Recusa chave privada e chaves fracas.</summary>
     public static RSA LoadPublicKey(string pem)
     {
         if (pem.Contains("PRIVATE KEY", StringComparison.Ordinal))
@@ -46,14 +38,11 @@ public static class Hybrid
         return rsa;
     }
 
-    /// <summary>Impressão curta da chave, para conferir que servidor e PC usam o mesmo par.</summary>
     public static string Fingerprint(RSA key)
     {
         var hash = SHA256.HashData(key.ExportSubjectPublicKeyInfo());
         return Convert.ToHexString(hash, 0, 8).ToLowerInvariant();
     }
-
-    // ------------------------------------------------------------------ blob (backups)
 
     public static byte[] EncryptBlob(byte[] plaintext, RSA publicKey)
     {
@@ -127,9 +116,6 @@ public static class Hybrid
         }
     }
 
-    // ------------------------------------------------------------------ logs (vários registros)
-
-    /// <summary>Cifra registros de log em sequência, com uma chave por arquivo e um contador como nonce.</summary>
     public sealed class LogEncryptor
     {
         private readonly object _gate = new();
@@ -151,10 +137,8 @@ public static class Hybrid
             Header = header;
         }
 
-        /// <summary>Cabeçalho do arquivo (grave uma vez, no começo).</summary>
         public byte[] Header { get; }
 
-        /// <summary>Cifra um registro e devolve: tamanho (4 bytes) + dados cifrados + etiqueta.</summary>
         public byte[] Seal(byte[] plaintext)
         {
             lock (_gate)
@@ -176,7 +160,6 @@ public static class Hybrid
 
     public sealed record LogResult(int Records, bool TruncatedTail);
 
-    /// <summary>Abre um arquivo de log cifrado e escreve o texto puro em <paramref name="output"/>.</summary>
     public static LogResult DecryptLog(Stream input, RSA privateKey, Stream output)
     {
         var magic = new byte[4];

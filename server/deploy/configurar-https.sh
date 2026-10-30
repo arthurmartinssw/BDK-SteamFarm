@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Coloca o painel do farm em HTTPS com o Caddy (certificado gratuito automático).
-# Uso (como root):  bash /root/configurar-https.sh            -> usa SEU-IP.sslip.io
-#                   bash /root/configurar-https.sh meu.dominio -> usa um domínio seu
 set -euo pipefail
 
 IP=$(ip -4 route get 1.1.1.1 | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1)}')
@@ -28,7 +25,6 @@ $DOMAIN {
 }
 CADDY
 
-# Se o firewall do Ubuntu estiver ligado, libera HTTP/HTTPS (a porta 22 do SSH continua liberada).
 if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
   ufw allow 80/tcp
   ufw allow 443/tcp

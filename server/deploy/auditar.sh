@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Confere a segurança da VPS e do BdkHourFarm. Só LÊ coisas: não altera nada.
-# Uso (como root):  bash /root/auditar.sh
 set -u
 
 DEST=/opt/bdkhourfarm
@@ -75,7 +73,7 @@ fi
 echo "== Sistema =="
 dpkg -s unattended-upgrades >/dev/null 2>&1 && ok "atualizações de segurança automáticas instaladas" || warn "unattended-upgrades ausente (apt install unattended-upgrades)"
 dpkg -s fail2ban >/dev/null 2>&1 && ok "fail2ban instalado" || warn "fail2ban ausente (opcional: bloqueia quem insiste em errar o SSH)"
-pending=$(apt list --upgradable 2>/dev/null | grep -c upgradable || true)
+pending=$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst' || true)
 [ "${pending:-0}" -eq 0 ] && ok "sem atualizações pendentes" || warn "$pending pacote(s) para atualizar (apt update && apt upgrade)"
 [ -f /var/run/reboot-required ] && warn "reinício do servidor pendente (reboot)" || ok "sem reinício pendente"
 use=$(df --output=pcent / | tail -n 1 | tr -dc '0-9')

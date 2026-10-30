@@ -4,7 +4,6 @@ using System.Text.Json;
 using Bdk.Crypto;
 using BdkHourFarm;
 
-// Pasta de dados: config.json, session.json etc. (sobrescreva com a variável BDK_DATA_DIR).
 var dataDir = Environment.GetEnvironmentVariable("BDK_DATA_DIR");
 if (string.IsNullOrWhiteSpace(dataDir))
     dataDir = Path.Combine(AppContext.BaseDirectory, "data");
@@ -51,7 +50,7 @@ int ShowToken()
     if (File.Exists(configPath))
     {
         try { configured = FarmConfig.Load(configPath).ApiToken; }
-        catch { /* usa o arquivo */ }
+        catch { }
     }
 
     Console.WriteLine(ApiToken.LoadOrCreate(tokenPath, configured));
@@ -213,7 +212,6 @@ async Task<int> RunFarmAsync()
     {
         if (loaded.Mode == Protection.None)
         {
-            // Sessão do formato antigo (texto puro): passa a guardar criptografada.
             try
             {
                 var ok = SessionStore.Save(sessionPath, session, Protection.Machine);
@@ -240,10 +238,11 @@ async Task<int> RunFarmAsync()
     var history = new HistoryStore(Path.Combine(dataDir, "history.json"));
     var gamesStore = new GamesStore(Path.Combine(dataDir, "games.json"));
     var keys = new ApiKeyStore(Path.Combine(dataDir, "webapikey.dat"), config.SteamWebApiKey);
-    var notifier = new Notifier(Path.Combine(dataDir, "webhook.dat"), Path.Combine(dataDir, "notify.json"));
+    var notifier = new Notifier(Path.Combine(dataDir, "webhook.dat"), Path.Combine(dataDir, "notify.json"), Path.Combine(dataDir, "notify-options.json"));
     var schedule = new ScheduleStore(Path.Combine(dataDir, "schedule.json"));
     var backups = new BackupService(dataDir, publicKey, config.BackupKeepDays);
-    var service = new FarmService(config, session, stats, appInfo, history, gamesStore, keys, notifier, schedule);
+    var persona = new PersonaStore(Path.Combine(dataDir, "persona.txt"), config.Persona);
+    var service = new FarmService(config, session, stats, appInfo, history, gamesStore, keys, notifier, schedule, persona);
 
     Console.CancelKeyPress += (_, e) =>
     {
@@ -251,7 +250,6 @@ async Task<int> RunFarmAsync()
         service.RequestStop();
     };
 
-    // systemd e Docker param o processo com SIGTERM.
     using var sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, ctx =>
     {
         ctx.Cancel = true;
@@ -276,13 +274,14 @@ async Task<int> RunFarmAsync()
             }
 
             var relog = new RelogService(sessionPath, service, notifier);
-            web = ApiServer.Build(config, service, token, TryUnlock, notifier, schedule, backups, relog, tokenPath);
+            var achievements = new AchievementsService(service);
+            var ai = new AiAssistant(new AiKeyStore(Path.Combine(dataDir, "aikey.dat")), config.AiModel);
+            web = ApiServer.Build(config, service, token, TryUnlock, notifier, schedule, backups, relog, tokenPath, achievements, ai);
             await web.StartAsync();
             Log.Info($"Painel em http://{config.ApiBindAddress}:{config.ApiPort}/");
         }
         catch (Exception ex)
         {
-            // O farm continua mesmo se o painel não subir (ex.: porta ocupada).
             Log.Error($"Não consegui iniciar o painel: {ex.Message}");
             web = null;
         }
@@ -290,8 +289,8 @@ async Task<int> RunFarmAsync()
 
     using var stopBackups = new CancellationTokenSource();
     _ = Task.Run(() => backups.RunScheduledAsync(stopBackups.Token));
+    _ = Task.Run(() => notifier.RunSummaryAsync(schedule, service.SummaryText, stopBackups.Token));
 
-    // O farm roda numa thread própria para não travar o servidor web.
     var exitCode = await Task.Factory.StartNew(
         () => service.Run(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
@@ -306,10 +305,9 @@ async Task<int> RunFarmAsync()
     return exitCode;
 }
 
-// Depois de restaurar um backup, webhook/chave da Steam chegam em texto: volta a criptografar com a chave desta máquina.
 void ReprotectRestoredSecrets()
 {
-    foreach (var name in new[] { "webhook.dat", "webapikey.dat" })
+    foreach (var name in new[] { "webhook.dat", "webapikey.dat", "aikey.dat" })
     {
         var path = Path.Combine(dataDir, name);
         if (!File.Exists(path)) continue;

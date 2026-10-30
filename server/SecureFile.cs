@@ -6,19 +6,15 @@ namespace BdkHourFarm;
 
 internal enum Protection
 {
-    /// <summary>Texto puro (formato antigo).</summary>
     None,
 
-    /// <summary>Criptografado com uma chave ligada a esta máquina. Inicia sozinho, mas só abre nesta máquina.</summary>
     Machine,
 
-    /// <summary>Criptografado com uma senha que não fica em disco. Exige desbloqueio a cada início.</summary>
     Passphrase,
 }
 
 internal sealed record SecureLoad(Protection Mode, string? Plaintext, string? Error);
 
-/// <summary>Arquivos secretos criptografados com AES-256-GCM.</summary>
 internal static class SecureFile
 {
     private const int Version = 2;
@@ -45,8 +41,6 @@ internal static class SecureFile
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
     };
-
-    // ------------------------------------------------------------------ leitura
 
     public static SecureLoad Read(string path)
     {
@@ -83,7 +77,6 @@ internal static class SecureFile
         }
     }
 
-    /// <summary>Abre um arquivo protegido por senha. Devolve null se a senha estiver errada.</summary>
     public static string? Unlock(string path, string passphrase)
     {
         try
@@ -107,13 +100,6 @@ internal static class SecureFile
         }
     }
 
-    // ------------------------------------------------------------------ escrita
-
-    /// <summary>
-    /// Grava o arquivo. Devolve false se pediu proteção "Machine" e não deu para proteger
-    /// (nesse caso o arquivo foi gravado em texto puro, com aviso no log). No modo "Passphrase"
-    /// nunca grava em texto puro: se falhar, lança exceção.
-    /// </summary>
     public static bool Write(string path, string plaintext, Protection mode, string? passphrase = null)
     {
         if (mode == Protection.None)
@@ -140,8 +126,6 @@ internal static class SecureFile
             return false;
         }
     }
-
-    // ------------------------------------------------------------------ interno
 
     private static Envelope? TryParseEnvelope(string text)
     {
@@ -228,7 +212,6 @@ internal static class SecureFile
         Rfc2898DeriveBytes.Pbkdf2(
             Encoding.UTF8.GetBytes("bdk-machine|" + secret), salt, MachineIterations, HashAlgorithmName.SHA256, KeyBytes);
 
-    /// <summary>Identificador único desta instalação do sistema (não sai da máquina).</summary>
     private static string? MachineSecret()
     {
         try
@@ -249,7 +232,6 @@ internal static class SecureFile
         }
         catch (Exception)
         {
-            // sem identificador: o chamador cai para o aviso/texto puro
         }
 
         return null;

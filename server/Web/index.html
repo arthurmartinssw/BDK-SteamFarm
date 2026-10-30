@@ -117,12 +117,10 @@
   .game .hours strong { display: block; font-size: 15px; }
   .game .hours span { color: var(--muted); font-size: 12px; }
 
-  /* ---------- segmentado (7/30 dias) ---------- */
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
   .seg button { border: 0; border-radius: 0; min-height: 36px; padding: 6px 14px; font-size: 14px; background: transparent; color: var(--muted); }
   .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
 
-  /* ---------- histórico e gráficos ---------- */
   .hist-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
   .hist-summary .label { color: var(--muted); font-size: 12px; }
   .hist-summary .value { font-size: 18px; font-weight: 600; }
@@ -161,7 +159,6 @@
   }
   #tip .strong { font-weight: 600; }
 
-  /* ---------- log ---------- */
   details.logs { margin-top: 20px; }
   details.logs summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; padding: 8px 4px; list-style: none; }
   details.logs summary::-webkit-details-marker { display: none; }
@@ -179,7 +176,6 @@
 
   footer { color: var(--muted); font-size: 12px; text-align: center; margin: 20px 0 8px; }
 
-  /* ---------- formulários ---------- */
   .form label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
   .form input[type="text"], .form input[type="password"], .form input[type="url"], .form input[type="search"], .form input[type="number"] {
     width: 100%; font: inherit; color: var(--text); background: var(--surface-2);
@@ -192,7 +188,6 @@
   a { color: var(--info); }
   code { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
 
-  /* ---------- tela "Escolher jogos" ---------- */
   dialog {
     width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0;
     border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text);
@@ -225,6 +220,38 @@
   .win input[type="time"] { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-height: 40px; }
   .win .times .grow { flex: 1; }
 
+  .ach-search { margin-top: 12px; }
+  .ach-results { list-style: none; margin: 8px 0 0; padding: 0; }
+  .ach-results li { border-bottom: 1px solid var(--border); }
+  .ach-results button { width: 100%; text-align: left; border: 0; background: transparent; min-height: 44px; padding: 8px 2px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; }
+  .ach-results .meta { color: var(--muted); font-size: 12px; flex: none; }
+  .pbar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin: 8px 0 12px; }
+  .pbar i { display: block; height: 100%; background: var(--accent); }
+  .ach-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .ach-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .ach-icon { width: 52px; height: 52px; border-radius: 8px; background: var(--surface-2); flex: none; overflow: hidden; }
+  .ach-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ach-item.locked .ach-icon img { opacity: .75; }
+  .ach-main { flex: 1; min-width: 0; }
+  .ach-name { font-weight: 600; }
+  .ach-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .ach-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .ach-meta .done { color: var(--accent); font-weight: 600; }
+  .ach-ai { margin-top: 8px; }
+  .ach-ask { display: flex; gap: 8px; margin-top: 8px; }
+  .ach-ask input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-height: 40px; }
+  .ach-answer { white-space: pre-wrap; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-top: 8px; }
+  .ach-answer.err { color: var(--danger); }
+
+  .seg.wrap { flex-wrap: wrap; }
+  .persona { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .persona .hint { margin: 0; }
+  .checks label { display: flex; gap: 10px; align-items: center; color: var(--text); margin: 8px 0 0; font-size: 15px; }
+  .checks input[type="checkbox"] { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+  .form select { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-height: 44px; width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 480px) { .grid2 { grid-template-columns: 1fr; } }
+
   .hidden { display: none !important; }
   .skeleton { color: var(--muted); text-align: center; padding: 32px 0; }
 </style>
@@ -254,6 +281,12 @@
     <label for="in-token">Token de acesso</label>
     <input id="in-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Cole o token do farm">
     <div class="hint">Na VPS: <code>sudo -u bdk /opt/bdkhourfarm/BdkHourFarm token</code>. Fica salvo só neste navegador.</div>
+    <label>Tema</label>
+    <div class="seg" role="group" aria-label="Tema" id="theme-seg">
+      <button data-theme-opt="">Sistema</button>
+      <button data-theme-opt="light">Claro</button>
+      <button data-theme-opt="dark">Escuro</button>
+    </div>
     <div class="row">
       <button class="primary" id="btn-save">Salvar e conectar</button>
       <button id="btn-cancel">Cancelar</button>
@@ -272,6 +305,20 @@
           <div class="detail num" id="state-detail">—</div>
         </div>
         <button id="btn-toggle" disabled>—</button>
+      </section>
+
+      <section class="card form persona" id="persona-card">
+        <div>
+          <h2 style="margin:0">Status na Steam</h2>
+          <div class="hint" id="persona-hint">As horas contam em qualquer status. Invisível e Offline escondem você dos amigos.</div>
+        </div>
+        <div class="seg wrap" role="group" aria-label="Status na Steam" id="persona-seg">
+          <button data-persona="Online">Online</button>
+          <button data-persona="Away">Ausente</button>
+          <button data-persona="Busy">Ocupado</button>
+          <button data-persona="Invisible">Invisível</button>
+          <button data-persona="Offline">Offline</button>
+        </div>
       </section>
 
       <section id="lock" class="card form hidden">
@@ -297,6 +344,30 @@
         <button class="small" id="btn-edit-games">Escolher jogos</button>
       </div>
       <ul class="games" id="games"></ul>
+
+      <div class="section-head"><h2>Conquistas</h2></div>
+      <section class="card form" id="ach-card">
+        <ul class="games" id="ach-games"></ul>
+        <div class="ach-search">
+          <label for="ach-q">Outro jogo da biblioteca</label>
+          <input id="ach-q" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar pelo nome…">
+          <ul class="ach-results" id="ach-results"></ul>
+        </div>
+        <div class="hint">Mostra o que você já desbloqueou e o que falta, com a raridade de cada conquista. Precisa da chave da Web API da Steam e dos detalhes de jogos do perfil como Público.</div>
+      </section>
+
+      <section class="card form" id="aicard">
+        <h2>Ajuda da IA</h2>
+        <div id="ai-state" class="hint" style="margin:0 0 4px">Carregando…</div>
+        <label for="ai-key">Chave da API da Anthropic</label>
+        <input id="ai-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+        <div class="hint">Crie em console.anthropic.com. Fica guardada criptografada na VPS e cada pergunta custa centavos. Só o nome do jogo, o texto da conquista e a sua pergunta são enviados (nunca sua conta ou token). A IA pode errar: confira em guias quando for importante.</div>
+        <div class="row">
+          <button class="primary" id="ai-save">Salvar</button>
+          <button class="ghost" id="ai-remove">Remover</button>
+        </div>
+        <div class="msg" id="ai-msg" role="status"></div>
+      </section>
 
       <div class="section-head">
         <h2>Histórico</h2>
@@ -349,10 +420,52 @@
         <div id="notify-state" class="hint" style="margin:0 0 4px">Carregando…</div>
         <label for="in-hook">Webhook do Discord</label>
         <input id="in-hook" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://discord.com/api/webhooks/…">
-        <div class="hint">No Discord: Configurações do servidor › Integrações › Webhooks › Novo webhook › Copiar URL. Fica guardado criptografado na VPS. Você recebe aviso quando o farm inicia, cai por mais de 3 min, volta, fica bloqueado, para, ou o login está perto de vencer.</div>
-        <label style="display:flex;gap:10px;align-items:center;color:var(--text);margin-top:14px"><input type="checkbox" id="ev-painel" style="width:20px;height:20px;accent-color:var(--accent)"> Avisar quando eu pausar ou retomar pelo painel/app</label>
-        <label style="display:flex;gap:10px;align-items:center;color:var(--text);margin-top:8px"><input type="checkbox" id="ev-outro_pc" style="width:20px;height:20px;accent-color:var(--accent)"> Avisar quando pausar/voltar por jogar em outro PC</label>
-        <label style="display:flex;gap:10px;align-items:center;color:var(--text);margin-top:8px"><input type="checkbox" id="ev-agenda" style="width:20px;height:20px;accent-color:var(--accent)"> Avisar quando a agenda pausar ou retomar</label>
+        <div class="hint">No Discord: Configurações do servidor › Integrações › Webhooks › Novo webhook › Copiar URL. Fica guardado criptografado na VPS. Escolha abaixo o que deve ser avisado.</div>
+        <label>O que avisar</label>
+        <div class="checks">
+          <label><input type="checkbox" id="ev-inicio"> Farm iniciou ou está parando (reinício, atualização)</label>
+          <label><input type="checkbox" id="ev-conexao"> Conexão com a Steam caiu por mais de 3 min e quando voltou</label>
+          <label><input type="checkbox" id="ev-painel"> Pausei ou retomei pelo painel/app</label>
+          <label><input type="checkbox" id="ev-outro_pc"> Pausou/voltou por eu jogar em outro PC</label>
+          <label><input type="checkbox" id="ev-agenda"> A agenda pausou ou retomou</label>
+          <label><input type="checkbox" id="ev-login"> Login perto de vencer, renovado ou farm bloqueado</label>
+          <label><input type="checkbox" id="ev-seguranca"> Segurança: tokens inválidos no painel, token trocado</label>
+          <label><input type="checkbox" id="ev-status"> Troquei o status da Steam (Online/Offline…)</label>
+        </div>
+        <div class="hint">“Login recusado” (farm parado) é sempre avisado.</div>
+
+        <div class="grid2">
+          <div>
+            <label for="dc-name">Nome do bot</label>
+            <input id="dc-name" type="text" maxlength="32" autocomplete="off" placeholder="BDK Hour Farm">
+          </div>
+          <div>
+            <label for="dc-summary">Resumo diário</label>
+            <select id="dc-summary"></select>
+          </div>
+          <div>
+            <label for="dc-mmode">Mencionar no Discord</label>
+            <select id="dc-mmode">
+              <option value="off">Nunca</option>
+              <option value="critical">Só nos avisos vermelhos</option>
+              <option value="all">Em todos os avisos</option>
+            </select>
+          </div>
+          <div>
+            <label for="dc-mtype">Quem mencionar</label>
+            <select id="dc-mtype">
+              <option value="user">Um usuário</option>
+              <option value="role">Um cargo</option>
+            </select>
+          </div>
+        </div>
+        <label for="dc-mid">ID do usuário ou cargo</label>
+        <input id="dc-mid" type="text" inputmode="numeric" autocomplete="off" placeholder="Ex.: 123456789012345678">
+        <div class="hint">No Discord: Configurações › Avançado › Modo desenvolvedor. Depois clique com o botão direito no seu nome (ou no cargo) › Copiar ID. O resumo usa o fuso da agenda.</div>
+        <div class="row">
+          <button id="dc-save">Salvar opções</button>
+          <button id="dc-summary-now">Enviar resumo agora</button>
+        </div>
         <div class="row">
           <button class="primary" id="btn-hook-save">Salvar</button>
           <button id="btn-hook-test">Enviar teste</button>
@@ -430,6 +543,18 @@
   </div>
 </dialog>
 
+<dialog id="dlg-ach" aria-labelledby="ach-title">
+  <div class="dlg-head">
+    <h3 id="ach-title">Conquistas</h3>
+    <span class="counter num" id="ach-count"></span>
+  </div>
+  <div class="dlg-body" id="ach-body"></div>
+  <div class="dlg-foot">
+    <button class="ghost" id="ach-refresh">Atualizar</button>
+    <button class="primary" id="ach-close">Fechar</button>
+  </div>
+</dialog>
+
 <div id="tip" role="tooltip" class="hidden"></div>
 
 <script>
@@ -440,7 +565,6 @@
   const MAX_GAMES = 32;
   const $ = (id) => document.getElementById(id);
 
-  // ---------- armazenamento local (pode falhar em aba anônima) ----------
   const store = {
     get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
     set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} },
@@ -450,7 +574,6 @@
   let token = store.get("bdk.token");
   let histDays = store.get("bdk.days") === "30" ? 30 : 7;
 
-  // Link de acesso: https://.../#token=XXX (e opcionalmente &api=https://...)
   if (location.hash.length > 1) {
     const params = new URLSearchParams(location.hash.slice(1));
     if (params.get("token")) { token = params.get("token"); store.set("bdk.token", token); }
@@ -459,13 +582,12 @@
   }
 
   let timer = null;
-  let last = null;          // último /api/status
-  let hist = null;          // último /api/history
+  let last = null;
+  let hist = null;
   let busy = false;
   let sessionsShown = 8;
   let showTable = false;
 
-  // ---------- formatação ----------
   function fmtDuration(totalSeconds) {
     if (totalSeconds == null) return "—";
     const s = Math.max(0, Math.floor(totalSeconds));
@@ -486,7 +608,6 @@
   const fmtDM = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const fmtTime = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-  // ---------- rede ----------
   async function api(path, options = {}) {
     const res = await fetch(apiBase + path, {
       ...options,
@@ -525,6 +646,7 @@
       loadHistory();
       loadNotify();
       loadBackup();
+      loadAi();
       if (!rlTimer) loadRelogin();
       loadSchedule(false);
       if ($("logs").open) loadLogs();
@@ -560,7 +682,6 @@
     }
   }
 
-  // ---------- tela principal ----------
   function render(d) {
     $("skeleton").classList.add("hidden");
     $("content").classList.remove("hidden");
@@ -586,6 +707,8 @@
     toggle.textContent = d.manualPause ? "Retomar" : "Pausar";
     toggle.className = d.manualPause ? "primary" : "";
 
+    renderPersona(d.persona);
+
     $("s-uptime").textContent = fmtDuration(d.uptimeSeconds);
     $("s-total").textContent = fmtHours(d.totalFarmedSeconds);
     $("s-games").textContent = d.games.length;
@@ -602,6 +725,7 @@
     }
 
     renderGames(d);
+    renderAchGames(d);
   }
 
   function coverImg(appId) {
@@ -651,9 +775,6 @@
     list.replaceChildren(frag);
   }
 
-  // ======================================================================
-  //  HISTÓRICO E GRÁFICOS
-  // ======================================================================
   const SVG_NS = "http://www.w3.org/2000/svg";
   function svgEl(tag, attrs = {}, text) {
     const el = document.createElementNS(SVG_NS, tag);
@@ -682,7 +803,6 @@
   }
   const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
 
-  /** Para cada dia local, soma o tempo farmando e guarda os blocos (para a linha do tempo). */
   function aggregate(sessions, n, nowSec) {
     return dayStarts(n).map((d0) => {
       const a = d0.getTime() / 1000, b = nextDay(d0).getTime() / 1000;
@@ -715,7 +835,6 @@
     const nowSec = Date.now() / 1000;
     const days = aggregate(hist.sessions, histDays, nowSec);
 
-    // ---- resumo do período
     const secs = days.reduce((t, d) => t + d.secs, 0);
     const gameSecs = days.reduce((t, d) => t + d.gameSecs, 0);
     const since = days[0].a;
@@ -741,7 +860,6 @@
     renderSessions(nowSec);
   }
 
-  // ---- gráfico de colunas: tempo farmando por dia
   function renderDaysChart(days) {
     const host = $("chart-days");
     host.replaceChildren();
@@ -781,7 +899,6 @@
 
       if (h > 0.5) {
         const r = Math.min(4, h, barW / 2);
-        // coluna: ponta de cima arredondada (4px), base reta no eixo
         svg.append(svgEl("path", {
           class: "bar",
           d: `M${x},${yTop + h} L${x},${yTop + r} Q${x},${yTop} ${x + r},${yTop} L${x + barW - r},${yTop} Q${x + barW},${yTop} ${x + barW},${yTop + r} L${x + barW},${yTop + h} Z`,
@@ -844,7 +961,6 @@
     host.append(table);
   }
 
-  // ---- linha do tempo (7 dias x 24 h)
   function renderTimeline(days) {
     const host = $("chart-timeline");
     host.replaceChildren();
@@ -902,12 +1018,11 @@
     host.append(svg);
   }
 
-  // ---- lista de sessões
   function renderSessions(nowSec) {
     const list = $("sessions");
     list.replaceChildren();
 
-    const items = [...hist.sessions].reverse(); // mais recente primeiro
+    const items = [...hist.sessions].reverse();
 
     if (!items.length) {
       const li = document.createElement("li");
@@ -957,7 +1072,6 @@
     $("btn-more").classList.toggle("hidden", items.length <= sessionsShown);
   }
 
-  // ---------- dicas (tooltip) ----------
   const tip = $("tip");
   function showTip(lines, x, y) {
     if (!lines) { hideTip(); return; }
@@ -996,9 +1110,42 @@
   document.addEventListener("focusout", hideTip);
   window.addEventListener("scroll", hideTip, { passive: true });
 
-  // ======================================================================
-  //  AÇÕES
-  // ======================================================================
+  let personaBusy = false;
+
+  function renderPersona(current) {
+    for (const b of $("persona-seg").querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", String(b.dataset.persona === current));
+      b.disabled = personaBusy;
+    }
+  }
+
+  for (const b of $("persona-seg").querySelectorAll("button")) {
+    b.onclick = async () => {
+      if (personaBusy || !last || last.persona === b.dataset.persona) return;
+      personaBusy = true;
+      renderPersona(last.persona);
+      try {
+        last = await post("/api/persona", { state: b.dataset.persona });
+      } catch (err) {
+        showBanner(err.message);
+      } finally {
+        personaBusy = false;
+        if (last) render(last);
+      }
+    };
+  }
+
+  function applyTheme(t) {
+    if (t) document.documentElement.setAttribute("data-theme", t);
+    else document.documentElement.removeAttribute("data-theme");
+    for (const b of $("theme-seg").querySelectorAll("button"))
+      b.setAttribute("aria-pressed", String(b.dataset.themeOpt === t));
+  }
+  applyTheme(store.get("bdk.theme"));
+  for (const b of $("theme-seg").querySelectorAll("button")) {
+    b.onclick = () => { store.set("bdk.theme", b.dataset.themeOpt); applyTheme(b.dataset.themeOpt); };
+  }
+
   async function toggleFarm() {
     if (!last || busy) return;
     busy = true;
@@ -1007,7 +1154,7 @@
       const data = await api(last.manualPause ? "/api/resume" : "/api/pause", { method: "POST" });
       last = data;
       render(data);
-      setTimeout(refresh, 3000); // a retomada leva ~2 s para começar
+      setTimeout(refresh, 3000);
     } catch (err) {
       showBanner(err.message);
     } finally {
@@ -1034,7 +1181,6 @@
     }
   }
 
-  // ---------- configurações ----------
   function openSettings() {
     $("in-api").value = apiBase;
     $("in-token").value = token;
@@ -1063,7 +1209,6 @@
   };
   $("logs").addEventListener("toggle", () => { if ($("logs").open) loadLogs(); });
 
-  // ---------- histórico: controles ----------
   function setDays(n) {
     histDays = n;
     store.set("bdk.days", String(n));
@@ -1090,13 +1235,10 @@
     if (w !== lastWidth) { lastWidth = w; renderHistory(); }
   }).observe($("hist"));
 
-  // ======================================================================
-  //  ESCOLHER JOGOS
-  // ======================================================================
   const dlg = $("dlg-games");
-  let lib = null;               // /api/library
-  let picked = new Set();       // AppIDs marcados
-  let extraNames = new Map();   // nomes de jogos que não estão na biblioteca
+  let lib = null;
+  let picked = new Set();
+  let extraNames = new Map();
   let query = "";
 
   function setDlgMsg(text) { $("dlg-msg").textContent = text || ""; }
@@ -1131,7 +1273,6 @@
     const body = $("dlg-body");
     body.replaceChildren();
 
-    // 1) chave da Steam
     if (!lib.configured || (lib.error && !lib.available)) {
       const note = document.createElement("div");
       note.className = "note";
@@ -1188,7 +1329,6 @@
       body.append(label, input, row);
     }
 
-    // 2) busca + lista
     if (lib.available) {
       const search = document.createElement("input");
       search.type = "search";
@@ -1205,7 +1345,6 @@
     body.append(ul);
     renderList();
 
-    // 3) adicionar por AppID
     const manual = document.createElement("div");
     manual.className = "manual";
     const idInput = document.createElement("input");
@@ -1244,7 +1383,6 @@
     const known = new Map();
     for (const g of (lib && lib.games) || []) known.set(g.appId, g);
 
-    // jogos marcados que não estão na biblioteca (adicionados por AppID)
     const items = [...((lib && lib.games) || [])];
     for (const id of picked) {
       if (!known.has(id)) items.push({ appId: id, name: extraNames.get(id) || `AppID ${id}`, minutes: null });
@@ -1330,12 +1468,9 @@
   $("dlg-save").onclick = saveGames;
   dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
 
-  // ======================================================================
-  //  AGENDA
-  // ======================================================================
   const DAY_LABELS = ["S", "T", "Q", "Q", "S", "S", "D"];
   const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-  let sched = null;          // { enabled, timeZone, windows, active, nextChange }
+  let sched = null;
   let schedDirty = false;
 
   function setSchMsg(text, ok) {
@@ -1426,7 +1561,7 @@
       sched = { ...d, windows: (d.windows || []).map((w) => ({ days: [...w.days], start: w.start, end: w.end })) };
       schedDirty = false;
       renderSchedule();
-    } catch { /* tenta de novo no próximo ciclo */ }
+    } catch { }
   }
 
   $("sch-enabled").onchange = () => { if (sched) { sched.enabled = $("sch-enabled").checked; schedDirty = true; } };
@@ -1458,9 +1593,6 @@
     $("sch-save").disabled = false;
   };
 
-  // ======================================================================
-  //  AVISOS NO DISCORD
-  // ======================================================================
   let notifyLoaded = false;
 
   function setHookMsg(text, ok) {
@@ -1469,13 +1601,63 @@
     el.style.color = ok ? "var(--accent)" : "var(--danger)";
   }
 
+  const EVENT_KEYS = ["inicio", "conexao", "painel", "outro_pc", "agenda", "login", "seguranca", "status"];
+
   function renderEvents(events) {
-    for (const key of ["painel", "outro_pc", "agenda"]) {
+    for (const key of EVENT_KEYS) {
       const box = $("ev-" + key);
-      if (box && events) box.checked = events[key] !== false;
+      if (box && events) box.checked = events[key] === true;
     }
   }
-  for (const key of ["painel", "outro_pc", "agenda"]) {
+
+  {
+    const sel = $("dc-summary");
+    const off = document.createElement("option");
+    off.value = "-1";
+    off.textContent = "Desligado";
+    sel.append(off);
+    for (let h = 0; h < 24; h++) {
+      const o = document.createElement("option");
+      o.value = String(h);
+      o.textContent = "Todo dia às " + String(h).padStart(2, "0") + ":00";
+      sel.append(o);
+    }
+  }
+
+  function renderOptions(o) {
+    if (!o) return;
+    $("dc-name").value = o.username || "";
+    $("dc-summary").value = String(o.summaryHour ?? -1);
+    $("dc-mmode").value = o.mentionMode || "off";
+    $("dc-mtype").value = o.mentionType || "user";
+    $("dc-mid").value = o.mentionId || "";
+  }
+
+  $("dc-save").onclick = async () => {
+    $("dc-save").disabled = true;
+    try {
+      const d = await post("/api/notify/options", {
+        username: $("dc-name").value.trim(),
+        summaryHour: Number($("dc-summary").value),
+        mentionMode: $("dc-mmode").value,
+        mentionType: $("dc-mtype").value,
+        mentionId: $("dc-mid").value.trim(),
+      });
+      renderOptions(d.options);
+      setHookMsg("Opções salvas.", true);
+    } catch (err) { setHookMsg(err.message); }
+    $("dc-save").disabled = false;
+  };
+
+  $("dc-summary-now").onclick = async () => {
+    $("dc-summary-now").disabled = true;
+    setHookMsg("Enviando…", true);
+    try { await post("/api/notify/summary"); setHookMsg("Resumo enviado.", true); }
+    catch (err) { setHookMsg(err.message); }
+    $("dc-summary-now").disabled = false;
+  };
+
+  for (const key of EVENT_KEYS) {
     $("ev-" + key).onchange = async (e) => {
       try { renderEvents((await post("/api/notify/events", { key, enabled: e.target.checked })).events); setHookMsg("Preferência salva.", true); }
       catch (err) { setHookMsg(err.message); }
@@ -1486,6 +1668,7 @@
     $("notify-state").textContent = configured ? "Avisos ligados." : "Avisos desligados. Cole um webhook para ligar.";
     $("btn-hook-test").disabled = !configured;
     $("btn-hook-remove").disabled = !configured;
+    $("dc-summary-now").disabled = !configured;
   }
 
   async function loadNotify() {
@@ -1495,7 +1678,8 @@
       notifyLoaded = true;
       renderNotify(d.configured);
       renderEvents(d.events);
-    } catch { /* tenta de novo no próximo ciclo */ }
+      renderOptions(d.options);
+    } catch { }
   }
 
   $("btn-hook-save").onclick = async () => {
@@ -1522,9 +1706,289 @@
     catch (err) { setHookMsg(err.message); }
   };
 
-  // ======================================================================
-  //  TROCAR O TOKEN DO PAINEL
-  // ======================================================================
+  const achDlg = $("dlg-ach");
+  let achAppId = 0;
+  let achData = null;
+  let achFilter = "missing";
+  let aiOn = false;
+  let aiLoaded = false;
+  let libGames = null;
+
+  function renderAchGames(d) {
+    const frag = document.createDocumentFragment();
+    for (const g of d.games) {
+      const li = document.createElement("li");
+      li.className = "game";
+      const cover = document.createElement("div");
+      cover.className = "cover";
+      cover.append(coverImg(g.appId));
+      const info = document.createElement("div");
+      info.className = "info";
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = g.name;
+      info.append(name);
+      const btn = document.createElement("button");
+      btn.className = "small";
+      btn.textContent = "Ver";
+      btn.onclick = () => openAchievements(g.appId);
+      li.append(cover, info, btn);
+      frag.append(li);
+    }
+    $("ach-games").replaceChildren(frag);
+  }
+
+  async function openAchievements(appId, refresh) {
+    achAppId = appId;
+    if (!achDlg.open) achDlg.showModal();
+    $("ach-title").textContent = "Conquistas";
+    $("ach-count").textContent = "";
+    $("ach-body").replaceChildren(Object.assign(document.createElement("div"), { className: "skeleton", textContent: "Carregando…" }));
+    try {
+      achData = await api("/api/achievements?appId=" + appId + (refresh ? "&refresh=true" : ""));
+      renderAchievements();
+    } catch (err) {
+      $("ach-body").replaceChildren(Object.assign(document.createElement("div"), { className: "note", textContent: err.message }));
+    }
+  }
+
+  function rarityLabel(p) {
+    if (p == null) return "";
+    const text = p.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "% dos jogadores";
+    if (p < 5) return "Raríssima · " + text;
+    if (p < 15) return "Rara · " + text;
+    return text;
+  }
+
+  function renderAchievements() {
+    const d = achData;
+    const body = $("ach-body");
+    $("ach-title").textContent = d.name;
+    $("ach-count").textContent = d.total ? d.unlocked + "/" + d.total : "";
+
+    const frag = document.createDocumentFragment();
+
+    if (d.error) {
+      const note = document.createElement("div");
+      note.className = "note";
+      note.textContent = d.error;
+      frag.append(note);
+      body.replaceChildren(frag);
+      return;
+    }
+
+    const bar = document.createElement("div");
+    bar.className = "pbar";
+    const fill = document.createElement("i");
+    fill.style.width = Math.round((d.unlocked / d.total) * 100) + "%";
+    bar.append(fill);
+    frag.append(bar);
+
+    const tools = document.createElement("div");
+    tools.className = "ach-tools";
+    const seg = document.createElement("div");
+    seg.className = "seg";
+    seg.setAttribute("role", "group");
+    for (const [key, label] of [["missing", "Faltam"], ["done", "Desbloqueadas"], ["all", "Todas"]]) {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.setAttribute("aria-pressed", String(achFilter === key));
+      b.onclick = () => { achFilter = key; renderAchievements(); };
+      seg.append(b);
+    }
+    tools.append(seg);
+    frag.append(tools);
+
+    if (!aiOn) {
+      const hint = document.createElement("div");
+      hint.className = "hint";
+      hint.style.marginTop = "8px";
+      hint.textContent = "Quer dicas de como conseguir cada conquista? Ative a ajuda da IA na tela principal.";
+      frag.append(hint);
+    }
+
+    let items = d.items.filter((i) => achFilter === "all" || (achFilter === "done") === i.achieved);
+    if (achFilter === "done") items.sort((a, b) => b.unlockTime - a.unlockTime);
+    else items.sort((a, b) => (b.percent ?? -1) - (a.percent ?? -1));
+
+    if (!items.length) {
+      const note = document.createElement("div");
+      note.className = "note";
+      note.style.marginTop = "12px";
+      note.textContent = achFilter === "done" ? "Nenhuma conquista desbloqueada ainda." : "Nada faltando. Parabéns!";
+      frag.append(note);
+    }
+
+    for (const item of items) frag.append(achRow(item));
+    body.replaceChildren(frag);
+  }
+
+  function achRow(item) {
+    const row = document.createElement("div");
+    row.className = "ach-item" + (item.achieved ? "" : " locked");
+
+    const icon = document.createElement("div");
+    icon.className = "ach-icon";
+    const src = item.achieved ? item.icon : (item.iconGray || item.icon);
+    if (src) {
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.alt = "";
+      img.referrerPolicy = "no-referrer";
+      img.src = src;
+      icon.append(img);
+    }
+
+    const main = document.createElement("div");
+    main.className = "ach-main";
+    const name = document.createElement("div");
+    name.className = "ach-name";
+    name.textContent = item.name;
+    const desc = document.createElement("div");
+    desc.className = "ach-desc";
+    desc.textContent = item.description || (item.hidden && !item.achieved ? "Conquista oculta" : "");
+    const meta = document.createElement("div");
+    meta.className = "ach-meta num";
+    if (item.achieved) {
+      const done = document.createElement("span");
+      done.className = "done";
+      done.textContent = "Desbloqueada" + (item.unlockTime ? " em " + new Date(item.unlockTime * 1000).toLocaleDateString("pt-BR") : "");
+      meta.append(done);
+      const extra = rarityLabel(item.percent);
+      if (extra) meta.append(" · " + extra);
+    } else {
+      meta.textContent = rarityLabel(item.percent);
+    }
+    main.append(name, desc, meta);
+
+    if (aiOn) {
+      const ai = document.createElement("div");
+      ai.className = "ach-ai";
+      const open = document.createElement("button");
+      open.className = "small";
+      open.textContent = item.achieved ? "Perguntar à IA" : "Como conseguir?";
+      const box = document.createElement("div");
+      box.className = "hidden";
+      const ask = document.createElement("div");
+      ask.className = "ach-ask";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.maxLength = 300;
+      input.placeholder = "Pergunta (opcional)";
+      const send = document.createElement("button");
+      send.className = "primary small";
+      send.textContent = "Perguntar";
+      ask.append(input, send);
+      const answer = document.createElement("div");
+      answer.className = "ach-answer hidden";
+      box.append(ask, answer);
+
+      const run = async () => {
+        send.disabled = true;
+        answer.className = "ach-answer";
+        answer.textContent = "Pensando…";
+        try {
+          const r = await post("/api/ai/ask", { appId: achAppId, achievementId: item.id, question: input.value.trim() });
+          answer.textContent = r.answer;
+        } catch (err) {
+          answer.className = "ach-answer err";
+          answer.textContent = err.message;
+        }
+        send.disabled = false;
+      };
+      open.onclick = () => {
+        const showing = box.classList.toggle("hidden") === false;
+        if (showing && !answer.textContent) run();
+      };
+      send.onclick = run;
+      input.onkeydown = (e) => { if (e.key === "Enter") run(); };
+      ai.append(open, box);
+      main.append(ai);
+    }
+
+    row.append(icon, main);
+    return row;
+  }
+
+  $("ach-close").onclick = () => achDlg.close();
+  $("ach-refresh").onclick = () => openAchievements(achAppId, true);
+
+  let libTimer = null;
+  $("ach-q").oninput = () => {
+    clearTimeout(libTimer);
+    libTimer = setTimeout(async () => {
+      const q = $("ach-q").value.trim().toLowerCase();
+      const out = $("ach-results");
+      if (q.length < 2) { out.replaceChildren(); return; }
+      try {
+        if (!libGames) libGames = (await api("/api/library")).games || [];
+      } catch { return; }
+      const found = libGames.filter((g) => g.name.toLowerCase().includes(q)).slice(0, 8);
+      const frag = document.createDocumentFragment();
+      for (const g of found) {
+        const li = document.createElement("li");
+        const b = document.createElement("button");
+        const n = document.createElement("span");
+        n.textContent = g.name;
+        const m = document.createElement("span");
+        m.className = "meta num";
+        m.textContent = fmtHours(g.minutes * 60);
+        b.append(n, m);
+        b.onclick = () => openAchievements(g.appId);
+        li.append(b);
+        frag.append(li);
+      }
+      if (!found.length) {
+        const li = document.createElement("li");
+        li.className = "hint";
+        li.textContent = libGames.length ? "Nenhum jogo com esse nome." : "Biblioteca indisponível: cole a chave da Steam em “Escolher jogos”.";
+        frag.append(li);
+      }
+      out.replaceChildren(frag);
+    }, 250);
+  };
+
+  function setAiMsg(text, ok) {
+    const el = $("ai-msg");
+    el.textContent = text || "";
+    el.style.color = ok ? "var(--accent)" : "var(--danger)";
+  }
+
+  function renderAi(configured, model) {
+    aiOn = configured;
+    $("ai-state").textContent = configured ? "IA ligada (modelo " + model + ")." : "IA desligada. Cole uma chave para ligar.";
+    $("ai-remove").disabled = !configured;
+  }
+
+  async function loadAi() {
+    if (aiLoaded) return;
+    try {
+      const d = await api("/api/ai");
+      aiLoaded = true;
+      renderAi(d.configured, d.model);
+    } catch { }
+  }
+
+  $("ai-save").onclick = async () => {
+    const key = $("ai-key").value.trim();
+    if (!key) { setAiMsg("Cole a chave."); return; }
+    $("ai-save").disabled = true;
+    try {
+      const d = await post("/api/ai/key", { key });
+      $("ai-key").value = "";
+      renderAi(d.configured, d.model);
+      setAiMsg("Salvo. Abra uma conquista e toque em “Como conseguir?”.", true);
+    } catch (err) { setAiMsg(err.message); }
+    $("ai-save").disabled = false;
+  };
+  $("ai-remove").onclick = async () => {
+    try {
+      const d = await post("/api/ai/key", { key: "" });
+      renderAi(d.configured, d.model);
+      setAiMsg("Chave removida.", true);
+    } catch (err) { setAiMsg(err.message); }
+  };
+
   let rotateArmed = null;
   $("tk-rotate").onclick = async () => {
     const msg = $("tk-msg");
@@ -1550,9 +2014,6 @@
     catch { $("tk-new").select(); }
   };
 
-  // ======================================================================
-  //  RENOVAR LOGIN DA STEAM
-  // ======================================================================
   let rlTimer = null;
   const RL_ACTIVE = ["connecting", "need_device_code", "need_email_code", "need_confirmation"];
 
@@ -1594,7 +2055,7 @@
   }
 
   async function loadRelogin() {
-    try { renderRelogin(await api("/api/relogin")); } catch { /* tenta de novo */ }
+    try { renderRelogin(await api("/api/relogin")); } catch { }
   }
 
   $("rl-start").onclick = async () => {
@@ -1617,9 +2078,6 @@
     try { renderRelogin(await post("/api/relogin/cancel")); } catch (err) { setRlMsg(err.message); }
   };
 
-  // ======================================================================
-  //  BACKUP CIFRADO
-  // ======================================================================
   let backupLoaded = false;
 
   function setBkMsg(text, ok) {
@@ -1649,7 +2107,7 @@
     try {
       renderBackup(await api("/api/backup"));
       backupLoaded = true;
-    } catch { /* tenta de novo no próximo ciclo */ }
+    } catch { }
   }
 
   $("bk-run").onclick = async () => {
@@ -1683,8 +2141,6 @@
     } catch (err) { setBkMsg(err.message); }
   };
 
-  // ---------- ciclo de atualização ----------
-  // Atualiza a cada 15 s, só com a aba visível.
   function schedule() {
     clearInterval(timer);
     timer = document.hidden ? null : setInterval(refresh, REFRESH_MS);

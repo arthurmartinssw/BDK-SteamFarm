@@ -2,7 +2,6 @@ using SteamKit2.Authentication;
 
 namespace BdkHourFarm;
 
-/// <summary>Pede o código do Steam Guard no console durante o "login" interativo.</summary>
 internal sealed class ConsoleAuthenticator : IAuthenticator
 {
     public Task<string> GetDeviceCodeAsync(bool previousCodeWasIncorrect)

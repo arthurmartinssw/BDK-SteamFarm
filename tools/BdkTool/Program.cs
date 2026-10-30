@@ -3,15 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 using Bdk.Crypto;
 
-// BdkTool: roda no SEU PC. Gera o par de chaves e abre backups e logs cifrados do BdkHourFarm.
-
 if (args.Length > 0 && args[0] is "-h" or "--help" or "help")
 {
     Usage();
     return 0;
 }
 
-// Sem argumentos (duplo clique) abre o menu. Arrastar um arquivo para o .exe abre direto.
 var guided = args.Length == 0 || (args.Length == 1 && (File.Exists(args[0]) || Directory.Exists(args[0])));
 var exitCode = 0;
 
@@ -23,7 +20,6 @@ try
 }
 catch (Exception ex)
 {
-    // Qualquer erro aparece na tela e a janela espera Enter, em vez de fechar sozinha.
     Console.Error.WriteLine("Erro: " + ex.Message);
     exitCode = 1;
 }
@@ -99,7 +95,6 @@ static string[]? Menu()
     }
 }
 
-/// <summary>Lê um caminho digitado ou arrastado para a janela (remove as aspas que o Windows coloca).</summary>
 static string? ReadPath(string prompt, bool allowEmpty = false)
 {
     Console.Write(prompt);
@@ -306,7 +301,6 @@ static int OpenBackup(string[] args)
     using var zip = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
     foreach (var entry in zip.Entries)
     {
-        // O backup só tem arquivos soltos; qualquer caminho estranho é recusado.
         if (entry.Name.Length == 0 || entry.FullName != entry.Name || entry.Name.Contains("..")
             || entry.Name.IndexOfAny(new[] { '/', '\\', ':' }) >= 0)
             throw new InvalidDataException($"Nome de arquivo suspeito no backup: {entry.FullName}");

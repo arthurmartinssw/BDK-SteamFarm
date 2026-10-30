@@ -7,7 +7,6 @@ internal sealed class StatsData
     public Dictionary<string, double> Seconds { get; set; } = new();
 }
 
-/// <summary>Soma, por jogo, o tempo que ESTE farm ficou jogando. Salvo em stats.json.</summary>
 internal sealed class StatsStore
 {
     private readonly string _path;

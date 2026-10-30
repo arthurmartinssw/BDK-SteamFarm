@@ -4,11 +4,6 @@ using Bdk.Crypto;
 
 namespace BdkHourFarm;
 
-/// <summary>
-/// Log no console (o systemd/journald guarda a saída) e, se houver chave pública de backup,
-/// também em arquivos CRIPTOGRAFADOS em data/logs. Só o seu PC (chave privada) consegue ler.
-/// Mantém as últimas linhas em memória para o painel.
-/// </summary>
 internal static class Log
 {
     private const int MaxBuffered = 300;
@@ -34,7 +29,6 @@ internal static class Log
     public static void Warn(string message) => Write("AVISO", message);
     public static void Error(string message) => Write("ERRO ", message);
 
-    /// <summary>Últimas linhas de log, da mais antiga para a mais recente.</summary>
     public static string[] Recent(int count)
     {
         count = Math.Clamp(count, 1, MaxBuffered);
@@ -45,7 +39,6 @@ internal static class Log
         }
     }
 
-    /// <summary>Liga os arquivos cifrados (se houver chave) e escolhe se o console continua recebendo o log.</summary>
     public static void Configure(RSA? publicKey, string logDir, bool console)
     {
         lock (Gate) _console = console;
@@ -73,7 +66,6 @@ internal static class Log
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Flush();
     }
 
-    /// <summary>Grava no disco o que está pendente (chamado a cada 10 s e ao encerrar).</summary>
     public static void Flush()
     {
         string[] lines;
@@ -105,7 +97,6 @@ internal static class Log
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)
             {
-                // Perde só este lote; o console continua mostrando.
                 Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [AVISO] Não consegui gravar o log cifrado: {ex.Message}");
                 _encryptor = null;
             }
@@ -143,7 +134,6 @@ internal static class Log
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // fica para a próxima
             }
         }
     }

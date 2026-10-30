@@ -38,7 +38,6 @@ data class DayAgg(
     val blocks: List<Block>,
 )
 
-/** Para cada dia local, soma o tempo farmando (cortando sessões que viram a meia-noite). */
 fun aggregate(sessions: List<FarmSession>, days: Int, nowSec: Long): List<DayAgg> {
     val zone = ZoneId.systemDefault()
     val today = LocalDate.now(zone)

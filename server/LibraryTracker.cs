@@ -5,7 +5,6 @@ namespace BdkHourFarm;
 
 internal sealed record OwnedGame(uint AppId, string Name, long Minutes);
 
-/// <summary>A biblioteca da conta (nomes e horas totais), vinda da Web API da Steam.</summary>
 internal sealed class LibraryTracker
 {
     private readonly object _gate = new();
@@ -37,7 +36,6 @@ internal sealed class LibraryTracker
         }
     }
 
-    /// <summary>Horas totais na Steam (em minutos), por jogo. null enquanto não houver dados.</summary>
     public IReadOnlyDictionary<uint, long>? MinutesMap()
     {
         lock (_gate)
@@ -110,12 +108,10 @@ internal sealed class LibraryTracker
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            return false; // programa encerrando ou pedido cancelado
+            return false;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or OperationCanceledException)
         {
-            // A mensagem de HttpRequestException não inclui a URL, então a chave não vaza no log.
-            // OperationCanceledException aqui é o tempo esgotado do HttpClient.
             SetError($"Não consegui falar com a Steam: {ex.Message}");
             return false;
         }

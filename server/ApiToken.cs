@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 
 namespace BdkHourFarm;
 
-/// <summary>Token que o painel precisa mandar para ver/controlar o farm.</summary>
 internal static class ApiToken
 {
     public static string LoadOrCreate(string path, string configured)
@@ -26,7 +25,6 @@ internal static class ApiToken
         return token;
     }
 
-    /// <summary>18 bytes aleatórios = 24 caracteres, sem símbolos difíceis de digitar no celular.</summary>
     public static string Generate() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(18)).Replace('+', 'x').Replace('/', 'y');
 
